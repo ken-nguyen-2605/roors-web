@@ -1,5 +1,5 @@
 export default function About() {
   return (
-    <div>About page here for testing deployment again</div>
+    <div>About page here for testing deployment from PR</div>
   );
 }
