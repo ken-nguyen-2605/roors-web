@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Restaurant Online Ordering and Reservation System (ROORS)
 
-## Getting Started
+## 📝 Overview
 
-First, run the development server:
+ROORS addresses the evolving needs of the modern dining industry by providing a complete online solution that enhances customer experience while streamlining restaurant operations. The platform enables customers to browse dynamic menus, place orders with real-time tracking, and make table reservations with availability checking, while empowering restaurant staff with powerful management tools and analytics.
 
+## 🌐 Deployments
+
+### Live Site
+
+View the latest deployment here: [ROORS Live Site](https://roors-web.vercel.app/)
+
+### Deployment Workflow
+
+- The site is automatically redeployed via **Vercel** whenever changes are pushed or a pull request is merged into the `main` branch.
+- No manual steps needed—just commit and push to `main` (or open/merge a PR) to trigger a new deployment.
+
+## 📦 Prerequisites
+
+Before running this project, ensure you have the following installed:
+
+- **Node.js** (v18.0.0 or higher)
+- **npm** package manager
+- **Git** for version control
+
+## 🚀 Getting Started
+
+### 1. Clone the Repository
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/ken-nguyen-2605/roors.git
+cd roors
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Install Dependencies
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Start Development Server
+```bash
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The application will be available at `http://localhost:3000`
 
-## Learn More
+### 4. Available Scripts
 
-To learn more about Next.js, take a look at the following resources:
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build application for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint code analysis
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🌿 Git Workflow & Branch Naming
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Branch Naming Convention
+Use prefixes to categorize your work:
 
-## Deploy on Vercel
+- **`feature/`** - New features
+  ```bash
+  feature/user-authentication
+  feature/scam-detection-api
+  feature/dashboard-ui
+  ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **`fix/`** or **`bug/`** - Bug fixes
+  ```bash
+  fix/login-validation
+  bug/database-connection
+  fix/responsive-layout
+  ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **`chore/`** - Maintenance tasks
+  ```bash
+  chore/update-dependencies
+  chore/refactor-config
+  chore/improve-documentation
+  ```
