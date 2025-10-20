@@ -9,6 +9,7 @@ type SlideBackgroundProps = {
     interval?: number;
     transitionDuration?: number;
     className? : string;
+    overlay? : string;
 }
 
 export default function SlideBackground({
@@ -16,7 +17,8 @@ export default function SlideBackground({
     images,
     interval = 3000,
     transitionDuration,
-    className = "",
+    className,
+    overlay,
 }: SlideBackgroundProps) {
 
     const [idx, setIdx] = useState(0);
@@ -48,10 +50,10 @@ export default function SlideBackground({
                     />
                 </div>
             ))}
+            {overlay &&
+            <div className={`absolute inset-0 pointer-events-none ${overlay}`}/>}
 
-            <div className="absolute inset-0 pointer-events-none bg-black/40"/>
-
-            <div>{children}</div>
+            <div className="absolute">{children}</div>
         </div>
     )
 }
