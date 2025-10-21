@@ -1,7 +1,7 @@
-import SlideBackground from "@/ultility/slidebackground";
-import Star from "@/components/decorativeComponents/star";
-import Line from "@/components/decorativeComponents/line";
-import CrewCard from "@/components/crewCard";
+import SlideBackground from "@/utils/Slidebackground";
+import Star from "@/components/decorativeComponents/Star";
+import Line from "@/components/decorativeComponents/Line";
+import CrewCard from "@/components/home/crewCard";
 import Image from "next/image";
 import Link from "next/link";
 

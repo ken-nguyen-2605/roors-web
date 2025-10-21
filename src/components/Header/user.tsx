@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { FaUserCircle } from "react-icons/fa";
 
-import PaperMenu from "./dropDownMenu";
+import PaperMenu from "./DropDownMenu";
 
 export default function UserIcon() {
     const [opend, setOpend] = useState(false)
