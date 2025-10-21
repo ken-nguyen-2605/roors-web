@@ -35,6 +35,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             target="_blank"
                             rel="noopener noreferrer"
                             className="crew-card-icon"
+                            aria-label="Facebook profile"
                         >
                             <FaFacebook size={24}/>
                         </a>
@@ -44,7 +45,8 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             href={instagram}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="crew-card-icon"
+                            className="crew-card-icon"                
+                            aria-label="Instagram profile"
                         >
                             <FaInstagram size={24}/>
                         </a>
@@ -55,6 +57,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             target="_blank"
                             rel="noopener noreferrer"
                             className="crew-card-icon"
+                            aria-label="TikTok profile"
                         >
                             <FaTiktok size={24}/>
                         </a>
@@ -65,6 +68,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             target="_blank"
                             rel="noopener noreferrer"
                             className="crew-card-icon"
+                            aria-label="Email contact"
                         >
                             <SiGmail size={24}/>
                         </a>
