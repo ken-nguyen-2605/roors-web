@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useScrollTrigger } from "@/ultility/scrollState";
+import UserIcon from "./user";
 
 import { Italianno } from 'next/font/google';
 const italianno = Italianno({
@@ -16,7 +17,7 @@ import { FaUserCircle } from "react-icons/fa";
 export default function Header({tranYdistance}: {tranYdistance: number}) {
     const scrolled = useScrollTrigger(tranYdistance);
     return (
-        <div className={`fixed flex items-center justify-between h-[58px] w-full px-[42px] golden z-20 transition-[background-color] duration-300 ease-in-out ${scrolled ? "bg-black" : "backdrop-blur-lg"}`}>
+        <div className={`fixed flex items-center justify-between h-[50px] w-full px-[42px] golden z-20 transition-[background-color] duration-300 ease-in-out ${scrolled ? "bg-black" : "backdrop-blur-lg"}`}>
             <span className={`${italianno.className} text-4xl`} style={{ fontStyle: 'italic' }}>ROORS</span>
             <div className="flex flex-row items-center gap-[30px] h-[34px]">
                 <div className="hidden  md:flex gap-10 text-xl">    
@@ -25,7 +26,7 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
                     <Link href="/" className="transition-transform duration-150 hover:scale-110">Reservation</Link>
                 </div>
                 <Icon icon="mdi:bell" className="w-[28px] h-[32px]"/>
-                <FaUserCircle className="w-[30px] h-[30px]"/>
+                <UserIcon/>
             </div>
         </div>
     )

@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import { FaFacebook } from "react-icons/fa";
 import { FaInstagram } from "react-icons/fa";
@@ -35,7 +34,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             href={facebook}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="transition-colors duration-150 hover:text-[#FBBF24]"
+                            className="crew-card-icon"
                         >
                             <FaFacebook size={24}/>
                         </a>
@@ -45,7 +44,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             href={instagram}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="transition-colors duration-150 hover:text-[#FBBF24]"
+                            className="crew-card-icon"
                         >
                             <FaInstagram size={24}/>
                         </a>
@@ -55,7 +54,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             href={tiktok}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="transition-colors duration-150 hover:text-[#FBBF24]"
+                            className="crew-card-icon"
                         >
                             <FaTiktok size={24}/>
                         </a>
@@ -65,7 +64,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             href={email}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="transition-colors duration-150 hover:text-[#FBBF24]"
+                            className="crew-card-icon"
                         >
                             <SiGmail size={24}/>
                         </a>

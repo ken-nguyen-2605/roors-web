@@ -53,7 +53,7 @@ export default function SlideBackground({
             {overlay &&
             <div className={`absolute inset-0 pointer-events-none ${overlay}`}/>}
 
-            <div className="absolute">{children}</div>
+            <div className="relative">{children}</div>
         </div>
     )
 }
