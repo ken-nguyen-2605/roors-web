@@ -32,28 +32,26 @@ export default function SlideBackground({
     return (
         <div className={`relative overflow-hidden ${className}`}>
             {images.map((src, i) => (
-                <div 
-                    key = {src}
-                    className="absolute inset-0"
+                <div
+                    key={src}
+                    className="absolute inset-0 bg-cover bg-center bg-fixed"
                     style={{
+                        backgroundImage: `url(${src})`,
                         opacity: i === idx ? 1 : 0,
                         transition: `opacity ${transitionDuration}ms ease-in-out`,
                     }}
-                >
-                    <Image
-                        src = {src}
-                        alt = ""
-                        fill
-                        priority = {i === 0}
-                        sizes="100vw"
-                        className = "object-cover"
-                    />
-                </div>
+                />
             ))}
             {overlay &&
             <div className={`absolute inset-0 pointer-events-none ${overlay}`}/>}
 
+<<<<<<< Updated upstream:src/ultility/slidebackground.tsx
             <div className="absolute">{children}</div>
+=======
+            <div className="absolute inset-0 pointer-events-none bg-black/75"/>
+
+            <div>{children}</div>
+>>>>>>> Stashed changes:src/utils/slidebackground.tsx
         </div>
     )
 }
