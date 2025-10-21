@@ -2,5 +2,39 @@
 
 body {
     background-color: #F5F4ED;
-    font-family: "Geist", sans-serif, "Italianno";
+    font-family: "Geist", sans-serif;
+}
+
+.container-t-opened {
+    @apply border-b-2 border-r-2 border-l-2 rounded-[30px] bg-white
+}
+
+.flex-center {
+    @apply flex justify-center items-center
+}
+
+.dish-view-card {
+    @apply w-[840px] h-[120px] border-black border-[2px] rounded-r-[20px]
+}
+
+.dish-view-image {
+    @apply object-cover rounded-r-[20px]
+}
+
+.crew-card {
+    border-bottom-left-radius: 30px;
+    border-top-right-radius: 30px;
+    @apply w-[248px] h-[337px] border-2 shadow bg-[#F5F4ED]
+}
+
+.crew-card-image {
+    border-top-right-radius: 30px;
+}
+
+.crew-card-contact {
+    border-bottom-left-radius: 30px;
+}
+
+.golden {
+    @apply text-[#FBBF24];
 }
