@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 
 import { FaFacebook } from "react-icons/fa";
 import { FaInstagram } from "react-icons/fa";
@@ -36,6 +35,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             target="_blank"
                             rel="noopener noreferrer"
                             className="transition-colors duration-150 hover:text-[#FBBF24]"
+                            aria-label="Facebook profile"
                         >
                             <FaFacebook size={24}/>
                         </a>
@@ -46,6 +46,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             target="_blank"
                             rel="noopener noreferrer"
                             className="transition-colors duration-150 hover:text-[#FBBF24]"
+                            aria-label="Instagram profile"
                         >
                             <FaInstagram size={24}/>
                         </a>
@@ -56,6 +57,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             target="_blank"
                             rel="noopener noreferrer"
                             className="transition-colors duration-150 hover:text-[#FBBF24]"
+                            aria-label="TikTok profile"
                         >
                             <FaTiktok size={24}/>
                         </a>
@@ -66,6 +68,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             target="_blank"
                             rel="noopener noreferrer"
                             className="transition-colors duration-150 hover:text-[#FBBF24]"
+                            aria-label="Email contact"
                         >
                             <SiGmail size={24}/>
                         </a>

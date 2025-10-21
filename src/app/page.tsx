@@ -1,11 +1,7 @@
-<<<<<<< Updated upstream
-import SlideBackground from "@/ultility/slidebackground";
+import SlideBackground from "@/utils/slidebackground";
 import Star from "@/components/decorativeComponents/star";
 import Line from "@/components/decorativeComponents/line";
 import CrewCard from "@/components/crewCard";
-=======
-import SlideBackground from "@/utils/slidebackground";
->>>>>>> Stashed changes
 import Image from "next/image";
 import Link from "next/link";
 
@@ -62,12 +58,8 @@ export default function Home() {
         images = {["/background/bg1.jpg", "/background/bg3.jpg", "/background/bg2.jpg"]}
         interval = {8000}
         transitionDuration = {1500}  
-<<<<<<< Updated upstream
         className="flex-center h-[730px] w-full"
-        overlay="bg-black/40 border-b-4 golden"  
-=======
-        className="flex h-screen w-full"  
->>>>>>> Stashed changes
+        overlay="bg-black/40 border-b-4 golden"
       >
         <div className="relative flex-center w-[703px] h-[290px]">
           <span className="absolute top-0 left-0 w-[230px] h-[103px] border-white border-t-8 border-l-8"/>

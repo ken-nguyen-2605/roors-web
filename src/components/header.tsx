@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useScrollTrigger } from "@/ultility/scrollState";
+import { useScrollTrigger } from "@/utils/scrollState";
 
 import { Italianno } from 'next/font/google';
 const italianno = Italianno({

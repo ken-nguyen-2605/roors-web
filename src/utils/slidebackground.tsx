@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 
 type SlideBackgroundProps = {
     children?: React.ReactNode;
@@ -45,13 +44,7 @@ export default function SlideBackground({
             {overlay &&
             <div className={`absolute inset-0 pointer-events-none ${overlay}`}/>}
 
-<<<<<<< Updated upstream:src/ultility/slidebackground.tsx
             <div className="absolute">{children}</div>
-=======
-            <div className="absolute inset-0 pointer-events-none bg-black/75"/>
-
-            <div>{children}</div>
->>>>>>> Stashed changes:src/utils/slidebackground.tsx
         </div>
     )
 }

@@ -1,4 +1,4 @@
-import SlideBackground from "@/ultility/slidebackground";
+import SlideBackground from "@/utils/slidebackground";
 
 import { Inria_Serif } from 'next/font/google';
 const inriaSerif = Inria_Serif({
