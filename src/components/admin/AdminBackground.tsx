@@ -1,5 +1,5 @@
 import React from 'react';
-import SlideBackground from '@/utils/slidebackground';
+import SlideBackground from '@/utils/Slidebackground';
 
 const backgroundImages = [
   '/background/bg1.jpg',

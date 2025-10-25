@@ -1,7 +1,7 @@
-import SlideBackground from "@/utils/slidebackground";
-import Star from "@/components/decorativeComponents/star";
-import Line from "@/components/decorativeComponents/line";
-import CrewCard from "@/components/crewCard";
+import SlideBackground from "@/utils/Slidebackground";
+import Star from "@/components/decorativeComponents/Star";
+import Line from "@/components/decorativeComponents/Line";
+import CrewCard from "@/components/home/crewCard";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -20,8 +20,8 @@ const italiana = Italiana({
 const colors = [
   "#F5F4ED",
   "#FFFFFF",
-  "#00000088",
-  "#00000038",
+  "#7A7A76",
+  "#989793",
 ]
 const dishes : Dish[] = [
   {id: 1, names: "Dish1", images: "/dishes/dish7.jpg", descriptions: "dish1 desc", ingredients: "ingredient1, ingredient2"},
@@ -58,10 +58,10 @@ export default function Home() {
         images = {["/background/bg1.jpg", "/background/bg3.jpg", "/background/bg2.jpg"]}
         interval = {8000}
         transitionDuration = {1500}  
-        className="flex-center h-[730px] w-full"
-        overlay="bg-black/40 border-b-4 golden"
+        className="flex-center h-screen w-full"
+        overlay="bg-black/40 border-b-4 golden"  
       >
-        <div className="relative flex-center w-[703px] h-[290px]">
+        <div className="flex-center w-[703px] h-[290px]">
           <span className="absolute top-0 left-0 w-[230px] h-[103px] border-white border-t-8 border-l-8"/>
           <span className="absolute bottom-0 right-0 w-[230px] h-[103px] border-white border-b-8 border-r-8"/>
           <div className="text-center text-white">
@@ -76,7 +76,10 @@ export default function Home() {
       
       
       <section className="w-[1280px] h-[1114px] mt-[37px] mx-auto">
-        <div className="relative flex flex-row gap-25 flex-center h-1/2 ">
+        <div className="relative flex flex-row gap-25 flex-center h-1/2"
+        data-aos="fade-up"
+        data-aos-delay="0" 
+        data-aos-duration="650">
           <div className="">
             <span className={`${italiana.className} text-[40px] mb-2.5`}>Introduction</span>
             <div className="w-[585px] h-[255px] container-t-opened">
@@ -101,7 +104,10 @@ export default function Home() {
             {/* </div> */}
           </div>
         </div>
-        <div className="relative flex flex-row gap-25 flex-center h-1/2">
+        <div className="relative flex flex-row gap-25 flex-center h-1/2"
+        data-aos="fade-up"
+        data-aos-delay="0" 
+        data-aos-duration="650">
           <div className="relative flex w-[367px] h-[510px]">
             <Image
               src= "/image/home2.jpg"
@@ -133,10 +139,16 @@ export default function Home() {
       </div>
 
       <section className="relative text-center flex flex-col gap-11 w-[1280px] h-auto mt-[75px] mx-auto">
-        <span className={`${italiana.className} text-5xl`}>Best Seller</span>
+        <span className={`${italiana.className} text-5xl`} 
+        data-aos="fade-up"
+        data-aos-delay="0" 
+        data-aos-duration="650">Best Seller</span>
         {/* <div className="flex flex-col gap-2.5 mx-auto"> */}
           {dishes.map((dish, i) => (
-            <div key={i} className="flex flex-row gap-2.5 dish-view-card mx-auto shadow-xl px-1 py-1.5" style={{ backgroundColor: colors[i]}}>
+            <div key={i} className="flex flex-row gap-2.5 dish-view-card mx-auto shadow-xl px-1 py-1.5" style={{ backgroundColor: colors[i]}}
+            data-aos="fade-up"
+            data-aos-delay={i*100} 
+            data-aos-duration="650">
               <Image 
                 src={dish.images}
                 alt=""
@@ -152,9 +164,14 @@ export default function Home() {
             </div>
           ))}
         {/* </div> */}
-        <Link href="/menu">
-          <div className="flex-center w-[262px] h-[30px] border-[1px] rounded-[30px] mx-auto mt-2 transition-[color, transform] duration-150 hover:scale-110 hover:text-[#FBBF24]">- View full menu -</div>
-        </Link>
+        <div 
+          data-aos="fade-up"  
+          data-aos-delay="0" 
+          data-aos-duration="650">    
+          <Link href="/menu" className="view-menu-button">
+            <div className="transition duration-300 hover:text-black">- View full menu -</div>
+          </Link>
+        </div>
       </section>
 
       <div className="relative flex items-center justify-between w-[1134px] h-[64px] mt-[66px] mx-auto">
@@ -163,14 +180,23 @@ export default function Home() {
         <Line color="black" size={514} direction="horizontal" thinkness={3}/>
       </div>
 
-      <section className="relative text-center flex flex-col gap-13 w-[1280px] h-[950px] mt-[75px] mx-auto">
-        <span className={`${italiana.className} text-5xl`}>Crew</span>
-        <div className="flex flex-row gap-[85px] mx-auto">
+      <section className="relative text-center flex flex-col gap-13 w-[1280px] h-[900px] mt-[75px] mx-auto">
+        <span className={`${italiana.className} text-5xl`}
+        data-aos="fade-up"
+        data-aos-delay="0" 
+        data-aos-duration="650">Crew</span>
+        <div className="flex flex-row gap-[85px] mx-auto"
+        data-aos="fade-up"
+        data-aos-delay="0" 
+        data-aos-duration="650">
           <CrewCard name="crew1" image="/image/crew.jpg" facebook="https://www.facebook.com/hunghao.chau"/>
           <CrewCard name="crew2" image="/image/crew.jpg" facebook="https://www.facebook.com/hunghao.chau"/>
           <CrewCard name="crew3" image="/image/crew.jpg"/>
         </div>
-        <div className="flex flex-row gap-[85px] mx-auto">
+        <div className="flex flex-row gap-[85px] mx-auto"
+        data-aos="fade-up"
+        data-aos-delay="0" 
+        data-aos-duration="650">
           <CrewCard name="crew4" image="/image/crew.jpg" facebook="https://www.facebook.com/hunghao.chau" tiktok="https://www.facebook.com/hunghao.chau"/>
           <CrewCard name="crew5" image="/image/crew.jpg"/>
         </div>

@@ -21,6 +21,10 @@ body {
     @apply object-cover rounded-r-[20px]
 }
 
+.view-menu-button {
+    @apply flex items-center justify-center w-[262px] h-[30px] border-[1px] rounded-[30px] mx-auto mt-2 transition duration-400 hover:scale-115 hover:font-medium
+}
+
 .crew-card {
     border-bottom-left-radius: 30px;
     border-top-right-radius: 30px;
@@ -35,6 +39,10 @@ body {
     border-bottom-left-radius: 30px;
 }
 
+.crew-card-icon {
+    @apply transition-colors duration-200 hover:text-[#FBBF24]
+}
+
 .golden {
-    @apply text-[#FBBF24];
+    @apply text-[#FBBF24]
 }

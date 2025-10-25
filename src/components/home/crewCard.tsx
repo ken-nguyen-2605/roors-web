@@ -34,7 +34,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             href={facebook}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="transition-colors duration-150 hover:text-[#FBBF24]"
+                            className="crew-card-icon"
                             aria-label="Facebook profile"
                         >
                             <FaFacebook size={24}/>
@@ -45,7 +45,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             href={instagram}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="transition-colors duration-150 hover:text-[#FBBF24]"
+                            className="crew-card-icon"                
                             aria-label="Instagram profile"
                         >
                             <FaInstagram size={24}/>
@@ -56,7 +56,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             href={tiktok}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="transition-colors duration-150 hover:text-[#FBBF24]"
+                            className="crew-card-icon"
                             aria-label="TikTok profile"
                         >
                             <FaTiktok size={24}/>
@@ -67,7 +67,7 @@ export default function CrewCard({image, name, facebook, instagram, tiktok, emai
                             href={email}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="transition-colors duration-150 hover:text-[#FBBF24]"
+                            className="crew-card-icon"
                             aria-label="Email contact"
                         >
                             <SiGmail size={24}/>
