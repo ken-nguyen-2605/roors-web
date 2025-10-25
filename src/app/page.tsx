@@ -1,4 +1,4 @@
-import SlideBackground from "@/utils/SlidebackGround";
+import SlideBackground from "@/utils/SlideBackground";
 import Star from "@/components/decorativeComponents/Star";
 import Line from "@/components/decorativeComponents/Line";
 import CrewCard from "@/components/home/crewCard";
