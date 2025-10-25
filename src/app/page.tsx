@@ -1,7 +1,7 @@
 import SlideBackground from "@/utils/SlideBackground";
 import Star from "@/components/decorativeComponents/Star";
 import Line from "@/components/decorativeComponents/Line";
-import CrewCard from "@/components/home/crewCard";
+import CrewCard from "@/components/home/CrewCard";
 import Image from "next/image";
 import Link from "next/link";
 
