@@ -377,7 +377,7 @@ export default function Menu() {
                                         <p className="text-xs text-gray-500 mt-2">*Delivery fee may vary based on location</p>
                                     </div>
 
-                                    <Link href="/checkout_page">
+                                    <Link href="/checkout">
                                         <button className="w-full py-4 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-colors duration-300 font-bold text-lg shadow-lg hover:shadow-xl">
                                             Proceed to Checkout
                                         </button>
