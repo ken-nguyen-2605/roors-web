@@ -5,24 +5,12 @@ body {
     font-family: "Geist", sans-serif;
 }
 
+.creamy-white-bg {
+    @apply bg-[#F4F5ED]
+}
+
 .container-t-opened {
     @apply border-b-2 border-r-2 border-l-2 rounded-[30px] bg-white
-}
-
-.flex-center {
-    @apply flex justify-center items-center
-}
-
-.dish-view-card {
-    @apply w-[840px] h-[120px] border-black border-[2px] rounded-r-[20px]
-}
-
-.dish-view-image {
-    @apply object-cover rounded-r-[20px]
-}
-
-.view-menu-button {
-    @apply flex items-center justify-center w-[262px] h-[30px] border-[1px] rounded-[30px] mx-auto mt-2 transition duration-400 hover:scale-115 hover:font-medium
 }
 
 .crew-card {
@@ -43,6 +31,35 @@ body {
     @apply transition-colors duration-200 hover:text-[#FBBF24]
 }
 
+.dish-view-card {
+    @apply w-[840px] h-[120px] border-black border-[2px] rounded-r-[20px]
+}
+
+.dish-view-image {
+    @apply object-cover rounded-r-[20px]
+}
+
+.flex-center {
+    @apply flex justify-center items-center
+}
+
 .golden {
     @apply text-[#FBBF24]
 }
+
+.menu-card-image {
+    @apply rounded-t-[30px] transform duration-250 hover:scale-102
+}
+
+.view-menu-button {
+    @apply flex items-center justify-center w-[262px] h-[30px] border-[1px] rounded-[30px] mx-auto mt-2 transition duration-400 hover:scale-115 hover:font-medium
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none; 
+  scrollbar-width: none;     
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;            
+}
+

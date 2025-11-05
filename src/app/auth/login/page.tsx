@@ -1,13 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Star from "@/components/decorativeComponents/Star";
 import Line from "@/components/decorativeComponents/Line";
+import authService from '@/services/authService';
 
 const styles = {
   page: {
-    container: "relative bg-[#F5F4ED] min-h-screen flex flex-col",
+    container: "relative bg-[#F5F4ED] min-h-[952px] flex flex-col",
   },
   header: {
     container: "w-full bg-black text-white py-6 border-b-4 border-[#D4AF37]",
@@ -24,11 +26,6 @@ const styles = {
     imageWrapper: "relative w-full h-[600px] shadow-lg rounded-lg overflow-hidden bg-gray-200",
     image: "w-full h-full object-cover",
   },
-  centerFrame: {
-    container: "md:col-span-1 flex flex-col items-center justify-center min-h-[600px]",
-    divider: "flex flex-col w-full h-full items-center justify-items-center",
-  },
-
   centerFrameTop: {
     container: "md:col-span-1 flex flex-col items-center justify-center min-h-[400px]",
     divider: "flex flex-col w-full h-full items-center justify-items-center top-0",
@@ -50,6 +47,8 @@ const styles = {
     input: "w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors",
     inputError: "border-red-500",
     inputNormal: "border-gray-300",
+    errorText: "text-red-500 text-sm mt-1",
+    successText: "text-green-600 text-sm mt-1",
     checkboxWrapper: "flex items-center",
     checkbox: "w-4 h-4 rounded border-2",
     checkboxError: "border-red-500",
@@ -57,7 +56,7 @@ const styles = {
     checkboxLabel: "ml-2 text-sm text-gray-700",
     link: "text-blue-600 hover:underline",
     linkBold: "text-blue-600 hover:underline font-medium",
-    submitButton: "w-full py-4 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-colors font-bold text-lg shadow-lg",
+    submitButton: "w-full py-4 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-colors font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed",
     textCenter: "text-center text-gray-700",
   },
   footer: {
@@ -71,13 +70,17 @@ const styles = {
 };
 
 export default function LoginPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: '',
     rememberMe: false
   });
 
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [apiSuccess, setApiSuccess] = useState('');
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -89,15 +92,14 @@ export default function LoginPage() {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
+    if (apiError) setApiError('');
   };
 
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required';
     }
 
     if (!formData.password) {
@@ -108,11 +110,45 @@ export default function LoginPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setApiError('');
+    setApiSuccess('');
 
-    if (validateForm()) {
-      console.log('Login successful:', formData);
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = await authService.login(
+        formData.username,
+        formData.password,
+        formData.rememberMe
+      );
+
+      if (result.success) {
+        setApiSuccess(result.message);
+        // Redirect to home or dashboard after successful login
+        setTimeout(() => {
+          router.push('/');
+        }, 1000);
+      } else {
+        // Handle specific error cases
+        if (result.status === 403) {
+          setApiError('Email not verified. Please check your email.');
+        } else if (result.status === 401) {
+          setApiError('Invalid username or password');
+        } else {
+          setApiError(result.message || 'Login failed. Please try again.');
+        }
+      }
+    } catch (error) {
+      setApiError('An unexpected error occurred. Please try again.');
+      console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -159,8 +195,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            
-
             {/* Right - Form Section */}
             <div className={styles.formSection.container}>
               <div className={styles.formSection.formWrapper}>
@@ -168,21 +202,37 @@ export default function LoginPage() {
                   
                   <h2 className={styles.form.title}>Welcome Back</h2>
 
+                  {apiError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                      {apiError}
+                    </div>
+                  )}
+
+                  {apiSuccess && (
+                    <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+                      {apiSuccess}
+                    </div>
+                  )}
+
                   <form onSubmit={handleSubmit} className={styles.form.form}>
                     
-                    {/* Email Field */}
+                    {/* Username Field */}
                     <div className={styles.form.fieldWrapper}>
-                      <label className={styles.form.label}>Email address</label>
+                      <label className={styles.form.label}>Username</label>
                       <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
+                        type="text"
+                        name="username"
+                        value={formData.username}
                         onChange={handleChange}
-                        placeholder="Enter your email"
+                        placeholder="Enter your username"
                         className={`${styles.form.input} ${
-                          errors.email ? styles.form.inputError : styles.form.inputNormal
+                          errors.username ? styles.form.inputError : styles.form.inputNormal
                         }`}
+                        disabled={isLoading}
                       />
+                      {errors.username && (
+                        <p className={styles.form.errorText}>{errors.username}</p>
+                      )}
                     </div>
 
                     {/* Password Field */}
@@ -197,7 +247,11 @@ export default function LoginPage() {
                         className={`${styles.form.input} ${
                           errors.password ? styles.form.inputError : styles.form.inputNormal
                         }`}
+                        disabled={isLoading}
                       />
+                      {errors.password && (
+                        <p className={styles.form.errorText}>{errors.password}</p>
+                      )}
                     </div>
 
                     {/* Remember Me Checkbox */}
@@ -209,6 +263,7 @@ export default function LoginPage() {
                         checked={formData.rememberMe}
                         onChange={handleChange}
                         className={`${styles.form.checkbox} ${styles.form.checkboxNormal}`}
+                        disabled={isLoading}
                       />
                       <label htmlFor="rememberMe" className={styles.form.checkboxLabel}>
                         Remember me
@@ -216,16 +271,26 @@ export default function LoginPage() {
                     </div>
 
                     {/* Submit Button */}
-                    <button type="submit" className={styles.form.submitButton}>
-                      Login
+                    <button 
+                      type="submit" 
+                      className={styles.form.submitButton}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Logging in...' : 'Login'}
                     </button>
 
-                    {/* Sign Up Link */}
+                    {/* Links */}
+                    <p className={styles.form.textCenter}>
+                      <Link href="/forgot-password" className={styles.form.link}>
+                        Forgot password?
+                      </Link>
+                    </p>
+
                     <p className={styles.form.textCenter}>
                       Don't have an account?{' '}
-                      <a href="/sign_up" className={styles.form.linkBold}>
+                      <Link href="/signup" className={styles.form.linkBold}>
                         Sign Up
-                      </a>
+                      </Link>
                     </p>
                   </form>
                 </div>
@@ -235,44 +300,6 @@ export default function LoginPage() {
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className={styles.footer.container}>
-        <div className={`${styles.footer.maxWidth} ${styles.footer.grid}`}>
-          <div>
-            <h4 className={styles.footer.heading}>Contact</h4>
-            <ul className={styles.footer.list}>
-              <li>📘 Facebook Link</li>
-              <li>📷 Instagram Link</li>
-              <li>🎵 TikTok Link</li>
-              <li>📧 Email Link</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className={styles.footer.heading}>Location</h4>
-            <p>📍 123 Culinary Street</p>
-            <p>Downtown District</p>
-            <p>City, State 12345</p>
-          </div>
-          
-          <div>
-            <h4 className={styles.footer.heading}>Hotline</h4>
-            <p>📞 0123456789</p>
-            <p>📱 0987654321</p>
-          </div>
-          
-          <div>
-            <h4 className={styles.footer.heading}>Opening Hours</h4>
-            <p>🕐 Mon-Fri: 11:00 - 22:00</p>
-            <p>🕐 Sat-Sun: 10:00 - 23:00</p>
-          </div>
-        </div>
-        
-        <div className={`${styles.footer.maxWidth} ${styles.footer.divider}`}>
-          <p>&copy; 2025 ROORS. All rights reserved.</p>
-        </div>
-      </footer>
 
     </div>
   );

@@ -32,7 +32,7 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
     }, []);
 
     // Mock user state - replace with your actual auth state
-    const isLoggedIn = false; // Change this based on your auth logic
+    const isLoggedIn = true; // Change this based on your auth logic
 
     return (
         <div className={`fixed flex items-center justify-between h-[58px] w-full px-[42px] golden z-20 transition-[background-color] duration-300 ease-in-out ${scrolled ? "bg-black" : "backdrop-blur-lg"}`}>
@@ -57,7 +57,7 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
                     {/* Dropdown Menu */}
                     {isProfileOpen && (
                         <div className="absolute right-0 mt-2 w-48 bg-black border border-yellow-600/30 rounded-lg shadow-lg overflow-hidden">
-                            {!isLoggedIn ? (
+                            {isLoggedIn ? (
                                 // Logged in menu
                                 <>
                                     <Link 

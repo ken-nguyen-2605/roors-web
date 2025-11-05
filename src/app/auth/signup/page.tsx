@@ -1,13 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Star from "@/components/decorativeComponents/Star";
 import Line from "@/components/decorativeComponents/Line";
+import authService from '@/services/authService';
 
 const styles = {
   page: {
-    container: "relative bg-[#F5F4ED] min-h-screen flex flex-col",
+    container: "relative bg-[#F5F4ED] min-h-[952px] flex flex-col",
   },
   header: {
     container: "w-full bg-black text-white py-6 border-b-4 border-[#D4AF37]",
@@ -24,11 +26,6 @@ const styles = {
     imageWrapper: "relative w-full h-[600px] shadow-lg rounded-lg overflow-hidden bg-gray-200",
     image: "w-full h-full object-cover",
   },
-  centerFrame: {
-    container: "md:col-span-1 flex flex-col items-center justify-center min-h-[600px]",
-    divider: "flex flex-col w-full h-full items-center justify-items-center",
-  },
-
   centerFrameTop: {
     container: "md:col-span-1 flex flex-col items-center justify-center min-h-[400px]",
     divider: "flex flex-col w-full h-full items-center justify-items-center top-0",
@@ -50,6 +47,7 @@ const styles = {
     input: "w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors",
     inputError: "border-red-500",
     inputNormal: "border-gray-300",
+    errorText: "text-red-500 text-sm mt-1",
     checkboxWrapper: "flex items-center",
     checkbox: "w-4 h-4 rounded border-2",
     checkboxError: "border-red-500",
@@ -57,7 +55,7 @@ const styles = {
     checkboxLabel: "ml-2 text-sm text-gray-700",
     link: "text-blue-600 hover:underline",
     linkBold: "text-blue-600 hover:underline font-medium",
-    submitButton: "w-full py-4 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-colors font-bold text-lg shadow-lg",
+    submitButton: "w-full py-4 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-colors font-bold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed",
     textCenter: "text-center text-gray-700",
   },
   footer: {
@@ -71,14 +69,18 @@ const styles = {
 };
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
-    name: '',
+    username: '',
     email: '',
     password: '',
     agreeToTerms: false
   });
 
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
+  const [apiSuccess, setApiSuccess] = useState('');
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -90,13 +92,16 @@ export default function SignUpPage() {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
+    if (apiError) setApiError('');
   };
 
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+    if (!formData.username.trim()) {
+      newErrors.username = 'Username is required';
+    } else if (formData.username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
     }
 
     if (!formData.email.trim()) {
@@ -112,18 +117,52 @@ export default function SignUpPage() {
     }
 
     if (!formData.agreeToTerms) {
-      newErrors.agreeToTerms = true;
+      newErrors.agreeToTerms = 'You must agree to the terms and policy';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setApiError('');
+    setApiSuccess('');
 
-    if (validateForm()) {
-      console.log('Sign up successful:', formData);
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = await authService.register(
+        formData.username,
+        formData.email,
+        formData.password
+      );
+
+      if (result.success) {
+        setApiSuccess(result.message);
+        // Clear form
+        setFormData({
+          username: '',
+          email: '',
+          password: '',
+          agreeToTerms: false
+        });
+        // Redirect to login after 3 seconds
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+      } else {
+        setApiError(result.message || 'Registration failed. Please try again.');
+      }
+    } catch (error) {
+      setApiError('An unexpected error occurred. Please try again.');
+      console.error('Registration error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -170,8 +209,6 @@ export default function SignUpPage() {
               </div>
             </div>
 
-            
-
             {/* Right - Form Section */}
             <div className={styles.formSection.container}>
               <div className={styles.formSection.formWrapper}>
@@ -179,21 +216,37 @@ export default function SignUpPage() {
                   
                   <h2 className={styles.form.title}>Get Started Now</h2>
 
+                  {apiError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                      {apiError}
+                    </div>
+                  )}
+
+                  {apiSuccess && (
+                    <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+                      {apiSuccess}
+                    </div>
+                  )}
+
                   <form onSubmit={handleSubmit} className={styles.form.form}>
                     
-                    {/* Name Field */}
+                    {/* Username Field */}
                     <div className={styles.form.fieldWrapper}>
-                      <label className={styles.form.label}>Name</label>
+                      <label className={styles.form.label}>Username</label>
                       <input
                         type="text"
-                        name="name"
-                        value={formData.name}
+                        name="username"
+                        value={formData.username}
                         onChange={handleChange}
-                        placeholder="Enter your name"
+                        placeholder="Enter your username"
                         className={`${styles.form.input} ${
-                          errors.name ? styles.form.inputError : styles.form.inputNormal
+                          errors.username ? styles.form.inputError : styles.form.inputNormal
                         }`}
+                        disabled={isLoading}
                       />
+                      {errors.username && (
+                        <p className={styles.form.errorText}>{errors.username}</p>
+                      )}
                     </div>
 
                     {/* Email Field */}
@@ -208,7 +261,11 @@ export default function SignUpPage() {
                         className={`${styles.form.input} ${
                           errors.email ? styles.form.inputError : styles.form.inputNormal
                         }`}
+                        disabled={isLoading}
                       />
+                      {errors.email && (
+                        <p className={styles.form.errorText}>{errors.email}</p>
+                      )}
                     </div>
 
                     {/* Password Field */}
@@ -223,7 +280,11 @@ export default function SignUpPage() {
                         className={`${styles.form.input} ${
                           errors.password ? styles.form.inputError : styles.form.inputNormal
                         }`}
+                        disabled={isLoading}
                       />
+                      {errors.password && (
+                        <p className={styles.form.errorText}>{errors.password}</p>
+                      )}
                     </div>
 
                     {/* Terms Checkbox */}
@@ -237,26 +298,34 @@ export default function SignUpPage() {
                         className={`${styles.form.checkbox} ${
                           errors.agreeToTerms ? styles.form.checkboxError : styles.form.checkboxNormal
                         }`}
+                        disabled={isLoading}
                       />
                       <label htmlFor="agreeToTerms" className={styles.form.checkboxLabel}>
                         I agree to the{' '}
-                        <a href="/terms" className={styles.form.link}>
+                        <Link href="/terms" className={styles.form.link}>
                           terms & policy
-                        </a>
+                        </Link>
                       </label>
                     </div>
+                    {errors.agreeToTerms && (
+                      <p className={styles.form.errorText}>{errors.agreeToTerms}</p>
+                    )}
 
                     {/* Submit Button */}
-                    <button type="submit" className={styles.form.submitButton}>
-                      Signup
+                    <button 
+                      type="submit" 
+                      className={styles.form.submitButton}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Creating account...' : 'Signup'}
                     </button>
 
                     {/* Sign In Link */}
                     <p className={styles.form.textCenter}>
                       Have an account?{' '}
-                      <a href="/signin" className={styles.form.linkBold}>
+                      <Link href="/signin" className={styles.form.linkBold}>
                         Sign In
-                      </a>
+                      </Link>
                     </p>
                   </form>
                 </div>
@@ -266,45 +335,6 @@ export default function SignUpPage() {
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className={styles.footer.container}>
-        <div className={`${styles.footer.maxWidth} ${styles.footer.grid}`}>
-          <div>
-            <h4 className={styles.footer.heading}>Contact</h4>
-            <ul className={styles.footer.list}>
-              <li>📘 Facebook Link</li>
-              <li>📷 Instagram Link</li>
-              <li>🎵 TikTok Link</li>
-              <li>📧 Email Link</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className={styles.footer.heading}>Location</h4>
-            <p>📍 123 Culinary Street</p>
-            <p>Downtown District</p>
-            <p>City, State 12345</p>
-          </div>
-          
-          <div>
-            <h4 className={styles.footer.heading}>Hotline</h4>
-            <p>📞 0123456789</p>
-            <p>📱 0987654321</p>
-          </div>
-          
-          <div>
-            <h4 className={styles.footer.heading}>Opening Hours</h4>
-            <p>🕐 Mon-Fri: 11:00 - 22:00</p>
-            <p>🕐 Sat-Sun: 10:00 - 23:00</p>
-          </div>
-        </div>
-        
-        <div className={`${styles.footer.maxWidth} ${styles.footer.divider}`}>
-          <p>&copy; 2025 ROORS. All rights reserved.</p>
-        </div>
-      </footer>
-
     </div>
   );
 }

@@ -1,14 +1,32 @@
+//Homepage of the Restaurant Website//
 'use client';
 
+import SlideBackground from "@/utils/SlideBackground";
+import Star from "@/components/decorativeComponents/Star";
+import Line from "@/components/decorativeComponents/Line";
+import CrewCard from "@/components/home/CrewCard";
+import Image from "next/image";
+import Link from "next/link";
 import { useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Italiana } from "next/font/google";
 
+import { Inria_Serif } from 'next/font/google';
+const inriaSerif = Inria_Serif({
+  weight: ['300'],
+  subsets: ['latin'],
+});
+
+import { Italiana } from "next/font/google";
 const italiana = Italiana({
   weight: ['400'],
   subsets: ['latin'],
 });
+
+const colors = [
+  "#F5F4ED",
+  "#FFFFFF",
+  "#7A7A76",
+  "#989793",
+]
 
 interface MenuItem {
   id: number;
@@ -42,7 +60,7 @@ const menuItems: MenuItem[] = [
     name: "Caesar Salad",
     description: "Crisp romaine lettuce, parmesan, croutons, and house-made Caesar dressing",
     price: 12.99,
-    image: "/menu/appetizer2.jpg",
+    image: "/dishes/dish4.jpg",
     category: "Appetizers",
     ingredients: ["Romaine lettuce", "Parmesan cheese", "Croutons", "Caesar dressing", "Anchovies", "Lemon"],
     allergens: ["Gluten", "Dairy", "Fish"],
@@ -193,7 +211,7 @@ export default async function DishDetailPage({ params }: PageProps) {
   const dishId = parseInt(resolvedParams.id);
   
   return <DishDetailContent dishId={dishId} />;
-}
+}   
 
 function DishDetailContent({ dishId }: { dishId: number }) {
   const [quantity, setQuantity] = useState(1);
@@ -236,218 +254,204 @@ function DishDetailContent({ dishId }: { dishId: number }) {
   const relatedDishes = menuItems
     .filter(item => item.category === dish.category && item.id !== dish.id)
     .slice(0, 3);
-
+    
   return (
-    <div className="min-h-screen bg-[#F5F4ED] pt-24 pb-16">
-      <div className="max-w-[1400px] mx-auto px-4">
-        
-        {/* Breadcrumb Navigation */}
-        <div className="mb-8 flex items-center gap-2 text-gray-600">
-          <Link href="/" className="hover:text-[#D4AF37] transition-colors">Home</Link>
-          <span>/</span>
-          <Link href="/menu" className="hover:text-[#D4AF37] transition-colors">Menu</Link>
-          <span>/</span>
-          <span className="text-gray-900">{dish.name}</span>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
-          
-          {/* Image Section */}
-          <div className="space-y-4">
-            <div className="relative h-[500px] rounded-2xl overflow-hidden shadow-2xl">
-              <Image
-                src={dish.image}
-                alt={dish.name}
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-            
-            {/* Thumbnail Gallery */}
-            <div className="grid grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map((index) => (
-                <div key={index} className="relative h-24 rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-[#D4AF37] transition-all">
-                  <Image
-                    src={dish.image}
-                    alt={`${dish.name} view ${index}`}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Details Section */}
-          <div className="space-y-6">
-            <div>
-              <span className="inline-block px-4 py-1 bg-[#D4AF37] text-white rounded-full text-sm font-semibold mb-4">
-                {dish.category}
-              </span>
-              <h1 className={`${italiana.className} text-5xl mb-4`}>{dish.name}</h1>
-              <p className="text-xl text-gray-700 leading-relaxed mb-6">
-                {dish.description}
-              </p>
-            </div>
-
-            {/* Price and Info Grid */}
-            <div className="grid grid-cols-3 gap-4 p-6 bg-white rounded-xl shadow-md">
-              <div className="text-center">
-                <p className="text-gray-600 text-sm mb-1">Price</p>
-                <p className="text-2xl font-bold text-[#D4AF37]">${dish.price.toFixed(2)}</p>
-              </div>
-              <div className="text-center border-l border-r border-gray-200">
-                <p className="text-gray-600 text-sm mb-1">Prep Time</p>
-                <p className="text-lg font-semibold">{dish.prepTime}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-gray-600 text-sm mb-1">Calories</p>
-                <p className="text-lg font-semibold">{dish.calories} kcal</p>
-              </div>
-            </div>
-
-            {/* Size Selection */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Select Size</h3>
-              <div className="flex gap-3">
-                {sizes.map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`flex-1 py-3 rounded-lg font-semibold transition-all duration-300 ${
-                      selectedSize === size
-                        ? 'bg-[#D4AF37] text-white shadow-lg'
-                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                    }`}
-                  >
-                    {size}
-                    <span className="block text-sm mt-1">
-                      ${(dish.price * sizeMultipliers[size]).toFixed(2)}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Quantity Selection */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Quantity</h3>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-12 h-12 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-xl font-bold"
-                >
-                  -
-                </button>
-                <span className="text-2xl font-semibold w-16 text-center">{quantity}</span>
-                <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-12 h-12 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-xl font-bold"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            {/* Add to Cart Section */}
-            <div className="flex gap-4 pt-4">
-              <button
-                onClick={addToCart}
-                className="flex-1 py-4 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-colors duration-300 font-bold text-lg shadow-lg"
-              >
-                Add to Cart - ${calculatePrice()}
-              </button>
-              <button className="w-14 h-14 bg-white border-2 border-[#D4AF37] rounded-lg hover:bg-gray-50 transition-colors text-2xl">
-                ♥
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Detailed Information */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            
-            {/* Ingredients */}
-            <div>
-              <h3 className={`${italiana.className} text-3xl mb-4 pb-3 border-b-2 border-[#D4AF37]`}>
-                Ingredients
-              </h3>
-              <ul className="space-y-2">
-                {dish.ingredients?.map((ingredient, index) => (
-                  <li key={index} className="flex items-center gap-3">
-                    <span className="w-2 h-2 bg-[#D4AF37] rounded-full"></span>
-                    <span className="text-gray-700">{ingredient}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Allergens & Nutritional Info */}
-            <div>
-              <h3 className={`${italiana.className} text-3xl mb-4 pb-3 border-b-2 border-[#D4AF37]`}>
-                Allergen Information
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-600 mb-2">Contains:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {dish.allergens?.map((allergen, index) => (
-                      <span key={index} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-semibold">
-                        {allergen}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="pt-4">
-                  <p className="text-sm text-gray-600 mb-3">Nutritional Information (per serving):</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-600">Calories</p>
-                      <p className="text-lg font-bold">{dish.calories}</p>
-                    </div>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-600">Prep Time</p>
-                      <p className="text-lg font-bold">{dish.prepTime}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recommendations Section */}
-        {relatedDishes.length > 0 && (
-          <div>
-            <h2 className={`${italiana.className} text-4xl text-center mb-8`}>
-              You May Also Like
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {relatedDishes.map((item) => (
-                <Link key={item.id} href={`/menu/${item.id}`}>
-                  <div className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] cursor-pointer">
-                    <div className="relative h-48">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="p-4">
-                      <h4 className="font-semibold mb-2">{item.name}</h4>
-                      <p className="text-[#D4AF37] font-bold">${item.price.toFixed(2)}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
+    <section className="relative w-full min-h-screen overflow-hidden">
+      
+      {/* SlideBackground as Background Layer */}
+      <div className="absolute top-0 left-0 w-full h-[700px] z-0">
+        <SlideBackground
+          images={["/background/bg1.jpg", "/background/bg3.jpg", "/background/bg2.jpg"]}
+          interval={8000}
+          transitionDuration={1500}  
+          className="w-full h-full"
+          overlay="bg-black/40"  
+        />
       </div>
-    </div>
+
+      {/* Main Content - Positioned on top of SlideBackground */}
+      <div className="relative z-10 min-h-screen pt-24 pb-16">
+        <div className="max-w-[1400px] mx-auto px-4">
+          
+          {/* Breadcrumb Navigation - On top of SlideBackground */}
+          <div className="mb-8 flex items-center gap-2 text-white drop-shadow-lg">
+            <Link href="/" className="hover:text-[#D4AF37] transition-colors font-semibold">Home</Link>
+            <span>/</span>
+            <Link href="/menu" className="hover:text-[#D4AF37] transition-colors font-semibold">Menu</Link>
+            <span>/</span>
+            <span className="text-[#D4AF37] font-semibold">{dish.name}</span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
+            
+            {/* Image Section - Top half on SlideBackground */}
+            <div className="space-y-4">
+              <div className="relative h-[500px] rounded-2xl overflow-hidden shadow-2xl backdrop-blur-sm bg-white/10 border-4 border-[#D4AF37]">
+                <Image
+                  src={dish.image}
+                  alt={dish.name}
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
+              
+              {/* Thumbnail Gallery */}
+              <div className="grid grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((index) => (
+                  <div key={index} className="relative h-24 rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-[#D4AF37] transition-all shadow-lg">
+                    <Image
+                      src={dish.image}
+                      alt={`${dish.name} view ${index}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Details Section - On top of SlideBackground with glass effect */}
+            <div className="space-y-6 backdrop-blur-md bg-white/90 p-8 rounded-2xl shadow-2xl">
+              <div>
+                <span className="inline-block px-4 py-1 bg-[#D4AF37] text-white rounded-full text-sm font-semibold mb-4">
+                  {dish.category}
+                </span>
+                <h1 className={`${italiana.className} text-5xl mb-4 text-gray-900`}>{dish.name}</h1>
+                <p className="text-xl text-gray-700 leading-relaxed mb-6">
+                  {dish.description}
+                </p>
+              </div>
+
+              {/* Price and Info Grid */}
+              <div className="grid grid-cols-3 gap-4 p-6 bg-white rounded-xl shadow-md">
+                <div className="text-center">
+                  <p className="text-gray-600 text-sm mb-1">Price</p>
+                  <p className="text-2xl font-bold text-[#D4AF37]">${dish.price.toFixed(2)}</p>
+                </div>
+                <div className="text-center border-l border-r border-gray-200">
+                  <p className="text-gray-600 text-sm mb-1">Prep Time</p>
+                  <p className="text-lg font-semibold">{dish.prepTime}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-600 text-sm mb-1">Calories</p>
+                  <p className="text-lg font-semibold">{dish.calories} kcal</p>
+                </div>
+              </div>
+
+              {/* Size Selection */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Select Size</h3>
+                <div className="flex gap-3">
+                  {sizes.map(size => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`flex-1 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                        selectedSize === size
+                          ? 'bg-[#D4AF37] text-white shadow-lg'
+                          : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+                      }`}
+                    >
+                      {size}
+                      <span className="block text-sm mt-1">
+                        ${(dish.price * sizeMultipliers[size]).toFixed(2)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quantity Selection */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Quantity</h3>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-12 h-12 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-xl font-bold"
+                  >
+                    -
+                  </button>
+                  <span className="text-2xl font-semibold w-16 text-center">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="w-12 h-12 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-xl font-bold"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Add to Cart Section */}
+              <div className="flex gap-4 pt-4">
+                <button
+                  onClick={addToCart}
+                  className="flex-1 py-4 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-colors duration-300 font-bold text-lg shadow-lg"
+                >
+                  Add to Cart - ${calculatePrice()}
+                </button>
+                <button className="w-14 h-14 bg-white border-2 border-[#D4AF37] rounded-lg hover:bg-gray-50 transition-colors text-2xl">
+                  ♥
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Detailed Information - Below SlideBackground on solid background */}
+          <div className="bg-white rounded-2xl shadow-lg p-8 mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              
+              {/* Ingredients */}
+              <div>
+                <h3 className={`${italiana.className} text-3xl mb-4 pb-3 border-b-2 border-[#D4AF37]`}>
+                  Ingredients
+                </h3>
+                <ul className="space-y-2">
+                  {dish.ingredients?.map((ingredient, index) => (
+                    <li key={index} className="flex items-center gap-3">
+                      <span className="w-2 h-2 bg-[#D4AF37] rounded-full"></span>
+                      <span className="text-gray-700">{ingredient}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Allergens & Nutritional Info */}
+              <div>
+                <h3 className={`${italiana.className} text-3xl mb-4 pb-3 border-b-2 border-[#D4AF37]`}>
+                  Allergen Information
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-2">Contains:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {dish.allergens?.map((allergen, index) => (
+                        <span key={index} className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-semibold">
+                          {allergen}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="pt-4">
+                    <p className="text-sm text-gray-600 mb-3">Nutritional Information (per serving):</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-600">Calories</p>
+                        <p className="text-lg font-bold">{dish.calories}</p>
+                      </div>
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-600">Prep Time</p>
+                        <p className="text-lg font-bold">{dish.prepTime}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </section>
   );
 }

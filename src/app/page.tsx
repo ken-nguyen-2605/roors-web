@@ -168,7 +168,7 @@ export default function Home() {
           data-aos="fade-up"  
           data-aos-delay="0" 
           data-aos-duration="650">    
-          <Link href="/about/menu" className="view-menu-button">
+          <Link href="/menu" className="view-menu-button">
             <div className="transition duration-300 hover:text-black">- View full menu -</div>
           </Link>
         </div>
