@@ -1,344 +1,241 @@
-'use client';
+// pages/reservations.tsx
+"use client";
+import { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
+import { Cinzel } from "next/font/google";
+import dayjs from "dayjs";
 
-import { useState } from 'react';
-import Link from 'next/link';
+import ReservationForm from "@/components/reservation/ReservationForm";
+import DateSelector from "@/components/reservation/DateSelector";
+import TimeSelector from "@/components/reservation/TimeSelector";
+import RestaurantMap from "@/components/reservation/RestaurantMap";
 import Star from "@/components/decorativeComponents/Star";
 import Line from "@/components/decorativeComponents/Line";
 
-const styles = {
-  page: {
-    container: "relative bg-[#F5F4ED] min-h-screen flex flex-col",
-  },
-  header: {
-    container: "w-full bg-black text-white py-6 border-b-4 border-[#D4AF37]",
-    content: "max-w-[1280px] mx-auto px-4 text-center",
-    title: "text-4xl font-bold text-[#D4AF37]",
-  },
-  main: {
-    wrapper: "flex-1 py-14 max-h-[750px]",
-    contentContainer: "max-w-[1280px] mx-auto px-3",
-    gridContainer: "grid grid-cols-1 md:grid-cols-12 gap-8 items-start",
-  },
-  imageSection: {
-    container: "md:col-span-5",
-    imageWrapper: "relative w-full h-[600px] shadow-lg rounded-lg overflow-hidden bg-gray-200",
-    image: "w-full h-full object-cover",
-  },
-  centerFrame: {
-    container: "md:col-span-1 flex flex-col items-center justify-center min-h-[600px]",
-    divider: "flex flex-col w-full h-full items-center justify-items-center",
-  },
+import { ReservationDetails } from "@/types/reservation";
+import { fetchTableAvailability } from "@/lib/availabilityAPI";
+import { motion } from "framer-motion";
 
-  centerFrameTop: {
-    container: "md:col-span-1 flex flex-col items-center justify-center min-h-[400px]",
-    divider: "flex flex-col w-full h-full items-center justify-items-center top-0",
-  },
-  centerFrameBottom: {
-    container: "md:col-span-1 flex flex-col items-center justify-center min-h-[750px]",
-    divider: "flex flex-col w-full h-full items-center justify-items-center bottom-0",
-  },
-  formSection: {
-    container: "md:col-span-5",
-    formWrapper: "bg-[#F5F4ED] rounded-lg shadow-lg p-8",
-    formContainer: "w-full",
-  },
-  form: {
-    title: "text-4xl font-bold mb-8 text-center",
-    form: "space-y-6",
-    fieldWrapper: "block",
-    label: "block text-gray-800 font-medium mb-2",
-    input: "w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors",
-    inputError: "border-red-500",
-    inputNormal: "border-gray-300",
-    select: "w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-[#D4AF37] transition-colors",
-    checkboxWrapper: "flex items-center",
-    checkbox: "w-4 h-4 rounded border-2",
-    checkboxError: "border-red-500",
-    checkboxNormal: "border-gray-400",
-    checkboxLabel: "ml-2 text-sm text-gray-700",
-    link: "text-blue-600 hover:underline",
-    linkBold: "text-blue-600 hover:underline font-medium",
-    submitButton: "w-full py-4 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-colors font-bold text-lg shadow-lg",
-    textCenter: "text-center text-gray-700",
-  },
-  footer: {
-    container: "w-full bg-black text-white py-12 mt-12 border-t-4 border-[#D4AF37]",
-    maxWidth: "max-w-[1280px] mx-auto px-4",
-    grid: "grid grid-cols-1 md:grid-cols-4 gap-8",
-    heading: "text-2xl mb-4 text-[#D4AF37]",
-    list: "space-y-2",
-    divider: "mt-8 pt-8 border-t border-gray-700 text-center",
-  },
-};
+const cinzel = Cinzel({
+	weight: ["400", "500", "600", "700"],
+	subsets: ["latin"],
+	display: "swap",
+});
 
-export default function ReservationPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    date: '',
-    time: '',
-    guests: '',
-    specialRequests: ''
-  });
+export default function ReservationsPage() {
+	// Centralized state for the entire reservation form
+	const [reservation, setReservation] = useState<ReservationDetails>({
+		name: "",
+		email: "",
+		phone: "",
+		guests: 2,
+		date: dayjs().format("YYYY-MM-DD"),
+		time: "18:00",
+		tableId: null,
+	});
 
-  const [errors, setErrors] = useState({});
+	// State to hold the availability of tables from the mock API
+	const [availability, setAvailability] = useState<{
+		bookedTables: string[];
+		notEnoughSpaceTables: string[];
+	}>({ bookedTables: [], notEnoughSpaceTables: [] });
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+	const [isLoading, setIsLoading] = useState(true);
 
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
-    }
-  };
+	// This effect runs whenever date, time, or guest count changes
+	useEffect(() => {
+		const getAvailability = async () => {
+			setIsLoading(true);
+			const result = await fetchTableAvailability({
+				date: reservation.date,
+				time: reservation.time,
+				guests: reservation.guests,
+			});
+			setAvailability(result);
+			setIsLoading(false);
 
-  const validateForm = () => {
-    const newErrors = {};
+			// If the currently selected table becomes unavailable, deselect it
+			if (
+				reservation.tableId &&
+				(result.bookedTables.includes(reservation.tableId) ||
+					result.notEnoughSpaceTables.includes(reservation.tableId))
+			) {
+				handleValueChange("tableId", null);
+			}
+		};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
-    }
+		getAvailability();
+	}, [reservation.date, reservation.time, reservation.guests]);
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-    }
+	// Generic handler to update any part of the reservation state
+	const handleValueChange = (
+		field: keyof ReservationDetails,
+		value: string | number | null
+	) => {
+		setReservation((prev) => ({ ...prev, [field]: value }));
+	};
 
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    }
+	// Derived state to check if the form is ready for submission
+	const isSubmittable = useMemo(() => {
+		return (
+			reservation.name &&
+			reservation.email &&
+			reservation.phone &&
+			reservation.tableId
+		);
+	}, [reservation]);
 
-    if (!formData.date) {
-      newErrors.date = 'Date is required';
-    }
+	const handleSubmit = () => {
+		if (!isSubmittable) {
+			alert("Please fill in all details and select a table.");
+			return;
+		}
+		alert(
+			`Reservation confirmed for ${reservation.name} (${reservation.guests} guests) on ${reservation.date} at ${reservation.time} for table ${reservation.tableId}. Confirmation sent to ${reservation.email}.`
+		);
+		console.log("Submitting reservation:", reservation);
+		// Here you would typically send the data to your backend API
+	};
 
-    if (!formData.time) {
-      newErrors.time = 'Time is required';
-    }
+	return (
+		<section className="relative min-h-screen bg-[#F5F4ED]">
+			{/* Decorative Background */}
+			<div className="absolute top-0 w-full h-[400px] overflow-hidden">
+				<Image
+					src="/background/bg1.jpg"
+					alt="Background"
+					fill
+					className="object-cover brightness-[0.3]"
+					priority
+				/>
+			</div>
 
-    if (!formData.guests) {
-      newErrors.guests = 'Number of guests is required';
-    }
+			<div className="relative z-10 flex flex-col items-center px-4 pt-36 pb-16">
+				{/* Header */}
+				<div
+					className="text-center mb-16"
+					data-aos="fade-down"
+					data-aos-duration="650"
+				>
+					<h1
+						className={`${cinzel.className} text-6xl md:text-7xl text-white mb-4 font-semibold tracking-wide`}
+					>
+						Make a Reservation
+					</h1>
+					<p className="text-white/90 text-lg font-light tracking-wider">
+						Select your preferred date and time
+					</p>
+				</div>
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+				{/* Decorative Line */}
+				<div
+					className="flex items-center justify-between w-full max-w-[900px] mb-12"
+					data-aos="fade-up"
+					data-aos-delay="100"
+					data-aos-duration="650"
+				>
+					<Line
+						color="white"
+						size={350}
+						direction="horizontal"
+						thinkness={2}
+					/>
+					<Star color="white" size={48} />
+					<Line
+						color="white"
+						size={350}
+						direction="horizontal"
+						thinkness={2}
+					/>
+				</div>
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+				{/* Main Content Card */}
+				<div
+					className="w-full max-w-8xl bg-white rounded-[20px] shadow-2xl p-8 md:p-12"
+					data-aos="fade-up"
+					data-aos-delay="200"
+					data-aos-duration="650"
+				>
+					{/* Section 1: User Details & Image */}
+					<div className="grid md:grid-cols-2 gap-10 mb-6">
+						<ReservationForm
+							details={reservation}
+							onChange={handleValueChange}
+						/>
+						<Image
+							src="/image/reservedTable.jpg"
+							alt="Reservation Decoration"
+							width={550}
+							height={200}
+							className="hidden md:block self-center justify-self-center rounded-lg"
+						/>
+					</div>
 
-    if (validateForm()) {
-      console.log('Reservation successful:', formData);
-    }
-  };
+					{/* Section 2: Date & Time Selection */}
+					<div className="mb-8">
+						<h2
+							className={`${cinzel.className} text-3xl text-center mb-4 text-[#7A7A76] font-bold`}
+						>
+							Select Date, Time & Table
+						</h2>
+						<DateSelector
+							selectedDate={reservation.date}
+							onSelect={(date) => handleValueChange("date", date)}
+						/>
+						<div className="my-2 h-[2px] bg-gradient-to-r from-transparent via-[#989793] to-transparent"></div>
+						<TimeSelector
+							selectedTime={reservation.time}
+							onSelect={(time) => handleValueChange("time", time)}
+						/>
+					</div>
 
-  return (
-    <div className={styles.page.container}>
-      
-      {/* Header */}
-      <header className={styles.header.container}>
-        <div className={styles.header.content}>
-          {/* <h1 className={styles.header.title}>ROORS Restaurant</h1> */}
-        </div>
-      </header>
-      
-      {/* Main Content */}
-      <main className={styles.main.wrapper}>
-        <div className={styles.main.contentContainer}>
-          <div className={styles.main.gridContainer}>
-            
-            {/* Left - Picture Section */}
-            <div className={styles.imageSection.container}>
-              <div className={styles.imageSection.imageWrapper}>
-                <img
-                  src="/image/FireChef.jpg"
-                  alt="Chef cooking with flames"
-                  className={styles.imageSection.image}
-                />
-              </div>
-            </div>
+					{/* Section 3: Table Map */}
+					<RestaurantMap
+						selectedTableId={reservation.tableId}
+						onTableSelect={(tableId) =>
+							handleValueChange("tableId", tableId)
+						}
+						bookedTables={availability.bookedTables}
+						notEnoughSpaceTables={availability.notEnoughSpaceTables}
+						isLoading={isLoading}
+					/>
 
-            {/* Center - Invisible Frame with Vertical Lines and Stars */}
-            <div className={styles.centerFrameTop.container}>
-              <div className={styles.centerFrameTop.divider}>
-                <Line color="black" size={200} direction="vertical" thinkness={3}/>
-                <Star color="black" size={64}/>
-                <Line color="black" size={200} direction="vertical" thinkness={3}/>
-              </div>
-            </div>
+					{/* Section 4: Final Confirmation Button */}
+					<div className="mt-12 flex justify-center">
+						<motion.button
+							onClick={handleSubmit}
+							disabled={!isSubmittable}
+							className="bg-gradient-to-r from-amber-700 to-amber-800 text-white px-12 py-4 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+							whileHover={{ scale: isSubmittable ? 1.05 : 1 }}
+							whileTap={{ scale: isSubmittable ? 0.95 : 1 }}
+						>
+							Confirm Reservation
+						</motion.button>
+					</div>
+				</div>
 
-            <div className={styles.centerFrameBottom.container}>
-              <div className={styles.centerFrameBottom.divider}>
-                <Line color="black" size={200} direction="vertical" thinkness={3}/>
-                <Star color="black" size={64}/>
-                <Line color="black" size={200} direction="vertical" thinkness={3}/>
-              </div>
-            </div>
-
-            
-
-            {/* Right - Form Section */}
-            <div className={styles.formSection.container}>
-              <div className={styles.formSection.formWrapper}>
-                <div className={styles.formSection.formContainer}>
-                  
-                  <h2 className={styles.form.title}>Reserve Your Table</h2>
-
-                  <form onSubmit={handleSubmit} className={styles.form.form}>
-                    
-                    {/* Name Field */}
-                    <div className={styles.form.fieldWrapper}>
-                      <label className={styles.form.label}>Full Name</label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Enter your name"
-                        className={`${styles.form.input} ${
-                          errors.name ? styles.form.inputError : styles.form.inputNormal
-                        }`}
-                      />
-                    </div>
-
-                    {/* Email Field */}
-                    <div className={styles.form.fieldWrapper}>
-                      <label className={styles.form.label}>Email address</label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="Enter your email"
-                        className={`${styles.form.input} ${
-                          errors.email ? styles.form.inputError : styles.form.inputNormal
-                        }`}
-                      />
-                    </div>
-
-                    {/* Phone Field */}
-                    <div className={styles.form.fieldWrapper}>
-                      <label className={styles.form.label}>Phone Number</label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="Enter your phone number"
-                        className={`${styles.form.input} ${
-                          errors.phone ? styles.form.inputError : styles.form.inputNormal
-                        }`}
-                      />
-                    </div>
-
-                    {/* Date Field */}
-                    <div className={styles.form.fieldWrapper}>
-                      <label className={styles.form.label}>Reservation Date</label>
-                      <input
-                        type="date"
-                        name="date"
-                        value={formData.date}
-                        onChange={handleChange}
-                        className={`${styles.form.input} ${
-                          errors.date ? styles.form.inputError : styles.form.inputNormal
-                        }`}
-                      />
-                    </div>
-
-                    {/* Time Field */}
-                    <div className={styles.form.fieldWrapper}>
-                      <label className={styles.form.label}>Reservation Time</label>
-                      <select
-                        name="time"
-                        value={formData.time}
-                        onChange={handleChange}
-                        className={`${styles.form.select} ${
-                          errors.time ? styles.form.inputError : styles.form.inputNormal
-                        }`}
-                      >
-                        <option value="">Select time</option>
-                        <option value="11:00">11:00 AM</option>
-                        <option value="11:30">11:30 AM</option>
-                        <option value="12:00">12:00 PM</option>
-                        <option value="12:30">12:30 PM</option>
-                        <option value="13:00">1:00 PM</option>
-                        <option value="13:30">1:30 PM</option>
-                        <option value="14:00">2:00 PM</option>
-                        <option value="17:00">5:00 PM</option>
-                        <option value="17:30">5:30 PM</option>
-                        <option value="18:00">6:00 PM</option>
-                        <option value="18:30">6:30 PM</option>
-                        <option value="19:00">7:00 PM</option>
-                        <option value="19:30">7:30 PM</option>
-                        <option value="20:00">8:00 PM</option>
-                        <option value="20:30">8:30 PM</option>
-                        <option value="21:00">9:00 PM</option>
-                      </select>
-                    </div>
-
-                    {/* Number of Guests */}
-                    <div className={styles.form.fieldWrapper}>
-                      <label className={styles.form.label}>Number of Guests</label>
-                      <select
-                        name="guests"
-                        value={formData.guests}
-                        onChange={handleChange}
-                        className={`${styles.form.select} ${
-                          errors.guests ? styles.form.inputError : styles.form.inputNormal
-                        }`}
-                      >
-                        <option value="">Select number of guests</option>
-                        <option value="1">1 Guest</option>
-                        <option value="2">2 Guests</option>
-                        <option value="3">3 Guests</option>
-                        <option value="4">4 Guests</option>
-                        <option value="5">5 Guests</option>
-                        <option value="6">6 Guests</option>
-                        <option value="7">7 Guests</option>
-                        <option value="8">8 Guests</option>
-                        <option value="9">9+ Guests</option>
-                      </select>
-                    </div>
-
-                    {/* Special Requests */}
-                    <div className={styles.form.fieldWrapper}>
-                      <label className={styles.form.label}>Special Requests (Optional)</label>
-                      <input
-                        type="text"
-                        name="specialRequests"
-                        value={formData.specialRequests}
-                        onChange={handleChange}
-                        placeholder="Any dietary restrictions or special occasions?"
-                        className={`${styles.form.input} ${styles.form.inputNormal}`}
-                      />
-                    </div>
-
-                    {/* Submit Button */}
-                    <button type="submit" className={styles.form.submitButton}>
-                      Book Table
-                    </button>
-
-                    {/* View Menu Link */}
-                    <p className={styles.form.textCenter}>
-                      Want to see our menu?{' '}
-                      <a href="/menu" className={styles.form.linkBold}>
-                        View Menu
-                      </a>
-                    </p>
-                  </form>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </main>
-
-    </div>
-  );
+				{/* Bottom Decorative Element */}
+				<div
+					className="flex items-center justify-between w-full max-w-[900px] mt-16"
+					data-aos="fade-up"
+					data-aos-delay="300"
+					data-aos-duration="650"
+				>
+					<Line
+						color="#7A7A76"
+						size={350}
+						direction="horizontal"
+						thinkness={2}
+					/>
+					<Star color="#7A7A76" size={48} />
+					<Line
+						color="#7A7A76"
+						size={350}
+						direction="horizontal"
+						thinkness={2}
+					/>
+				</div>
+			</div>
+		</section>
+	);
 }

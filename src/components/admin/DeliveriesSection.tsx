@@ -28,6 +28,7 @@ interface DeliveryOrder {
   estimatedTime: string;
   status: 'Available' | 'In Progress' | 'Completed';
   assignedTo?: string;
+  completedTime?: Date;
 }
 
 export default function DeliveriesSection() {
@@ -144,8 +145,14 @@ export default function DeliveriesSection() {
   const confirmCompleteDelivery = () => {
     if (!selectedOrder) return;
     
-    // Remove from my deliveries
-    setMyDeliveries(myDeliveries.filter(o => o.id !== selectedOrder.id));
+    // Update the order status to Completed instead of removing it
+    const updatedDeliveries = myDeliveries.map(order => 
+      order.id === selectedOrder.id 
+        ? { ...order, status: 'Completed' as const, completedTime: new Date() }
+        : order
+    );
+    
+    setMyDeliveries(updatedDeliveries);
     
     setShowConfirmModal(false);
     setSelectedOrder(null);
@@ -162,7 +169,12 @@ export default function DeliveriesSection() {
     return `${hours} giờ ${minutes % 60} phút trước`;
   };
 
-  const totalEarnings = myDeliveries.reduce((sum, order) => sum + order.total * 0.1, 0); // 10% commission
+  const totalEarnings = myDeliveries
+    .filter(order => order.status === 'Completed')
+    .reduce((sum, order) => sum + order.total * 0.1, 0); // 10% commission
+
+  const inProgressCount = myDeliveries.filter(o => o.status === 'In Progress').length;
+  const completedCount = myDeliveries.filter(o => o.status === 'Completed').length;
 
   return (
     <section id="deliveries" className="space-y-6">
@@ -312,18 +324,36 @@ export default function DeliveriesSection() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {myDeliveries.map((order) => (
-                <div key={order.id} className="rounded-2xl border-2 border-orange-300/50 bg-white/70 backdrop-blur-xl shadow-2xl p-6 hover:shadow-3xl transition-all">
+                <div key={order.id} className={`rounded-2xl border-2 backdrop-blur-xl shadow-2xl p-6 hover:shadow-3xl transition-all ${
+                  order.status === 'Completed' 
+                    ? 'border-green-300/50 bg-green-50/70' 
+                    : 'border-orange-300/50 bg-white/70'
+                }`}>
                   {/* Order Header */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-xl ring-2 ring-white/40 animate-pulse">
-                        <Navigation className="w-6 h-6 text-white" />
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-xl ring-2 ring-white/40 ${
+                        order.status === 'Completed'
+                          ? 'bg-gradient-to-br from-green-500 to-emerald-500'
+                          : 'bg-gradient-to-br from-orange-500 to-red-500 animate-pulse'
+                      }`}>
+                        {order.status === 'Completed' ? (
+                          <CheckCircle className="w-6 h-6 text-white" />
+                        ) : (
+                          <Navigation className="w-6 h-6 text-white" />
+                        )}
                       </div>
                       <div>
                         <div className="font-bold text-lg text-gray-900 drop-shadow-sm">{order.id}</div>
-                        <div className="px-2 py-1 rounded-full text-xs font-bold bg-orange-200/80 text-orange-900 inline-block backdrop-blur-sm">
-                          Đang giao hàng
-                        </div>
+                        {order.status === 'Completed' ? (
+                          <div className="px-2 py-1 rounded-full text-xs font-bold bg-green-200/80 text-green-900 inline-block backdrop-blur-sm">
+                            ✓ Đã hoàn thành
+                          </div>
+                        ) : (
+                          <div className="px-2 py-1 rounded-full text-xs font-bold bg-orange-200/80 text-orange-900 inline-block backdrop-blur-sm">
+                            Đang giao hàng
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">
@@ -360,6 +390,16 @@ export default function DeliveriesSection() {
                         <div className="text-sm font-bold text-gray-900 drop-shadow-sm">{order.deliveryAddress}</div>
                       </div>
                     </div>
+
+                    {order.status === 'Completed' && order.completedTime && (
+                      <div className="flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-green-500 mt-1 flex-shrink-0" />
+                        <div className="flex-1">
+                          <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Hoàn thành lúc</div>
+                          <div className="text-sm font-bold text-gray-900 drop-shadow-sm">{getTimeSince(order.completedTime)}</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Order Items */}
@@ -377,25 +417,37 @@ export default function DeliveriesSection() {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.deliveryAddress)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-3 rounded-xl bg-white/80 backdrop-blur-md text-gray-900 font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 border-2 border-white/40"
-                    >
-                      <MapPin className="w-5 h-5" />
-                      Dẫn đường
-                    </a>
-                    <button
-                      onClick={() => handleCompleteDelivery(order)}
-                      className="px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold shadow-xl hover:shadow-2xl transition-all hover:scale-105 flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle className="w-5 h-5" />
-                      Hoàn thành
-                    </button>
-                  </div>
+                  {/* Action Buttons - Only show for In Progress orders */}
+                  {order.status === 'In Progress' && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.deliveryAddress)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-3 rounded-xl bg-white/80 backdrop-blur-md text-gray-900 font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 border-2 border-white/40"
+                      >
+                        <MapPin className="w-5 h-5" />
+                        Dẫn đường
+                      </a>
+                      <button
+                        onClick={() => handleCompleteDelivery(order)}
+                        className="px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold shadow-xl hover:shadow-2xl transition-all hover:scale-105 flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle className="w-5 h-5" />
+                        Hoàn thành
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Completed badge for completed orders */}
+                  {order.status === 'Completed' && (
+                    <div className="mt-3 p-3 bg-green-100/80 backdrop-blur-sm rounded-lg border border-green-300/50 text-center">
+                      <div className="flex items-center justify-center gap-2 text-green-800 font-bold">
+                        <CheckCircle className="w-5 h-5" />
+                        <span>Đơn hàng đã được giao thành công</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

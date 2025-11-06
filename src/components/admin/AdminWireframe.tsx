@@ -31,7 +31,7 @@ export default function AdminWireframe({ children }: Props) {
   }, [pathname]);
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-[500] relative">
       {/* Background Component - Should be added at the app layout level */}
       <AdminHeader />
 
@@ -99,26 +99,6 @@ export default function AdminWireframe({ children }: Props) {
           </main>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="border-t border-white/30 bg-white/60 backdrop-blur-xl shadow-2xl mt-16">
-        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-sm text-gray-800 font-medium drop-shadow-sm">
-              © {new Date().getFullYear()} ROORS Restaurant. All rights reserved.
-            </div>
-            <div className="flex items-center gap-6 text-sm text-gray-800 font-medium">
-              <a href="/admin/help" className="hover:text-orange-600 transition-colors drop-shadow-sm">Help Center</a>
-              <a href="/admin/docs" className="hover:text-orange-600 transition-colors drop-shadow-sm">Documentation</a>
-              <a href="/admin/support" className="hover:text-orange-600 transition-colors drop-shadow-sm">Support</a>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-lg shadow-green-500/50"></div>
-                <span className="drop-shadow-sm">All systems operational</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
 
       <style jsx global>{`
         @keyframes fade-up {

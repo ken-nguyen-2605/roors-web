@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Clock, Eye, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Clock, Eye, CheckCircle, XCircle, AlertCircle, Calendar } from 'lucide-react';
 
 interface Order {
   id: string;
@@ -19,6 +19,10 @@ interface Order {
 export default function OrdersSection() {
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
+  
   const [orders, setOrders] = useState<Order[]>([
     {
       id: '#1045',
@@ -73,14 +77,50 @@ export default function OrdersSection() {
       type: 'Dine-in',
       createdAt: new Date(Date.now() - 5 * 60000),
       tableNumber: 'T-8'
+    },
+    // Sample orders from yesterday
+    {
+      id: '#1041',
+      customerName: 'David Brown',
+      customerPhone: '+1-555-0127',
+      items: [
+        { name: 'Pepperoni Pizza', quantity: 1, price: 15.99 }
+      ],
+      total: 15.99,
+      status: 'Delivered',
+      type: 'Delivery',
+      createdAt: new Date(Date.now() - 24 * 60 * 60000 - 2 * 60000),
+      deliveryAddress: '456 Oak Avenue'
+    },
+    {
+      id: '#1040',
+      customerName: 'Lisa Anderson',
+      customerPhone: '+1-555-0128',
+      items: [
+        { name: 'Chicken Wings', quantity: 2, price: 9.99 }
+      ],
+      total: 19.98,
+      status: 'Delivered',
+      type: 'Takeout',
+      createdAt: new Date(Date.now() - 24 * 60 * 60000 - 3 * 60000)
     }
   ]);
 
   const statuses = ['All', 'Pending', 'Preparing', 'Ready', 'Delivered', 'Cancelled'];
 
-  const filteredOrders = orders.filter(order => 
-    filterStatus === 'All' || order.status === filterStatus
-  );
+  // Filter orders by selected date and status
+  const filteredOrders = orders.filter(order => {
+    const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+    const matchesDate = orderDate === selectedDate;
+    const matchesStatus = filterStatus === 'All' || order.status === filterStatus;
+    return matchesDate && matchesStatus;
+  });
+
+  // Get count of orders for the selected date
+  const dateOrderCount = orders.filter(order => {
+    const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+    return orderDate === selectedDate;
+  }).length;
 
   const handleStatusChange = (orderId: string, newStatus: Order['status']) => {
     setOrders(orders.map(order => 
@@ -116,12 +156,27 @@ export default function OrdersSection() {
     });
   };
 
+  const formatDisplayDate = (dateString: string) => {
+    const date = new Date(dateString);
+
+
+    const dateOnly = date.toISOString().split('T')[0];
+
+
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short',
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
   return (
     <section id="orders" className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-white drop-shadow-lg">Orders Management</h2>
-          <p className="text-white/80 mt-1">{orders.length} total orders</p>
+          <p className="text-white/80 mt-1">{dateOrderCount} orders on {formatDisplayDate(selectedDate)}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-4 py-2 bg-white/90 rounded-xl shadow-lg">
@@ -131,26 +186,53 @@ export default function OrdersSection() {
         </div>
       </div>
 
+      {/* Date Selector */}
+      <div className="p-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="flex items-center gap-2 text-gray-700">
+            <Calendar className="w-5 h-5 text-orange-500" />
+            <label htmlFor="order-date" className="text-white font-semibold">Select Date:</label>
+          </div>
+          <div className="flex items-center gap-3 bg-white rounded-xl shadow-lg">
+            <input
+              id="order-date"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              max={new Date().toISOString().split('T')[0]}
+              className="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none font-medium text-gray-700"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Status Filter */}
       <div className="flex flex-wrap gap-2">
-        {statuses.map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilterStatus(status)}
-            className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
-              filterStatus === status
-                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:bg-gray-50 shadow'
-            }`}
-          >
-            {status}
-            {status !== 'All' && (
+        {statuses.map((status) => {
+          const statusCount = orders.filter(o => {
+            const orderDate = new Date(o.createdAt).toISOString().split('T')[0];
+            const matchesDate = orderDate === selectedDate;
+            const matchesStatus = status === 'All' || o.status === status;
+            return matchesDate && matchesStatus;
+          }).length;
+
+          return (
+            <button
+              key={status}
+              onClick={() => setFilterStatus(status)}
+              className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+                filterStatus === status
+                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 shadow'
+              }`}
+            >
+              {status}
               <span className="ml-2 text-xs">
-                ({orders.filter(o => o.status === status).length})
+                ({statusCount})
               </span>
-            )}
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
       {/* Orders Table */}
@@ -161,7 +243,6 @@ export default function OrdersSection() {
               <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
                 <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Order</th>
                 <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer</th>
-                {/* <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th> */}
                 <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
                 <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                 <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
@@ -181,11 +262,6 @@ export default function OrdersSection() {
                     <div className="font-medium text-gray-900">{order.customerName}</div>
                     <div className="text-xs text-gray-500">{order.customerPhone}</div>
                   </td>
-                  {/* <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getTypeColor(order.type)}`}>
-                      {order.type}
-                    </span>
-                  </td> */}
                   <td className="px-6 py-4 font-semibold text-gray-900">${order.total.toFixed(2)}</td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
@@ -233,7 +309,8 @@ export default function OrdersSection() {
         {filteredOrders.length === 0 && (
           <div className="text-center py-12 text-gray-500">
             <AlertCircle className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-            <p>No orders found</p>
+            <p className="font-medium">No orders found</p>
+            <p className="text-sm mt-1">There are no orders for {formatDisplayDate(selectedDate)}</p>
           </div>
         )}
       </div>
