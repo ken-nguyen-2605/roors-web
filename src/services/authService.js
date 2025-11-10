@@ -4,7 +4,7 @@ class AuthService {
   // Register new user
   async register(username, email, password) {
     try {
-      const response = await apiService.post('/auth/register', {
+      const response = await apiService.post('/api/auth/register', {
         username,
         email,
         password,
@@ -26,7 +26,7 @@ class AuthService {
   // Login user
   async login(username, password, rememberMe = false) {
     try {
-      const response = await apiService.post('/auth/login', {
+      const response = await apiService.post('/api/auth/login', {
         username,
         password,
       });
@@ -133,7 +133,7 @@ class AuthService {
   // Verify email
   async verifyEmail(token) {
     try {
-      const response = await apiService.post(`/auth/verify-email?token=${token}`);
+      const response = await apiService.post(`/api/auth/verify-email?token=${token}`);
       return {
         success: true,
         data: response,

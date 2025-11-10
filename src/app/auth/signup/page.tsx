@@ -153,7 +153,7 @@ export default function SignUpPage() {
         });
         // Redirect to login after 3 seconds
         setTimeout(() => {
-          router.push('/login');
+          router.push('/auth/login');
         }, 3000);
       } else {
         setApiError(result.message || 'Registration failed. Please try again.');

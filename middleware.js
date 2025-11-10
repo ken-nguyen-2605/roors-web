@@ -40,7 +40,7 @@ export function middleware(request) {
 
   // Redirect to home if trying to access auth routes while authenticated
   if (isAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/api', request.url));
   }
 
   return NextResponse.next();

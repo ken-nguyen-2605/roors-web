@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Star from "@/components/decorativeComponents/Star";
 import Line from "@/components/decorativeComponents/Line";
+import authService from '@/services/authService';
 
 const styles = {
   page: {
@@ -50,38 +51,43 @@ const styles = {
 export default function EmailVerifiedPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [verificationStatus, setVerificationStatus] = useState('success'); // verifying, success, error
+  const [verificationStatus, setVerificationStatus] = useState('verifying'); // verifying, success, error
   const [countdown, setCountdown] = useState(5);
   const [errorMessage, setErrorMessage] = useState('');
 
-//   useEffect(() => {
-//     const verifyEmail = async () => {
-//       // Get token from URL parameters
-//       const token = searchParams.get('token');
+  useEffect(() => {
+    const verifyEmail = async () => {
+      // Get token from URL parameters
+      const token = searchParams.get('token');
       
-//       if (!token) {
-//         setVerificationStatus('error');
-//         setErrorMessage('Verification token is missing');
-//         return;
-//       }
+      if (!token) {
+        setVerificationStatus('error');
+        setErrorMessage('Verification token is missing');
+        return;
+      }
 
-//       try {
-//         // Simulate API call to verify email
-//         await new Promise(resolve => setTimeout(resolve, 1500));
+      try {
+        // Simulate API call to verify email
+        const result = await authService.verifyEmail(token);
         
-//         // Here you would call your email verification API
-//         // const result = await authService.verifyEmail(token);
+        // Here you would call your email verification API
+        // const result = await authService.verifyEmail(token);
         
-//         setVerificationStatus('success');
-//       } catch (error) {
-//         setVerificationStatus('error');
-//         setErrorMessage('Failed to verify email. The link may be expired or invalid.');
-//         console.error('Email verification error:', error);
-//       }
-//     };
+        if (result.success) {
+            setVerificationStatus('success');
+        } else {
+        setVerificationStatus('error');
+        setErrorMessage(result.message);
+        }
+      } catch (error) {
+        setVerificationStatus('error');
+        setErrorMessage('Failed to verify email. The link may be expired or invalid.');
+        console.error('Email verification error:', error);
+      }
+    };
 
-//     verifyEmail();
-//   }, [searchParams]);
+    verifyEmail();
+  }, [searchParams]);
 
   useEffect(() => {
     if (verificationStatus === 'success' && countdown > 0) {
@@ -91,7 +97,7 @@ export default function EmailVerifiedPage() {
 
       return () => clearTimeout(timer);
     } else if (verificationStatus === 'success' && countdown === 0) {
-      router.push('/signin');
+      router.push('/auth/login');
     }
   }, [verificationStatus, countdown, router]);
 
