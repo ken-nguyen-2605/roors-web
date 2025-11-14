@@ -3,7 +3,8 @@
 import SlideBackground from "@/utils/SlideBackground";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import profileService from "@/services/profileService";
 
 import { Inria_Serif } from 'next/font/google';
 const inriaSerif = Inria_Serif({
@@ -37,19 +38,19 @@ interface LikedDish {
   likedDate: string;
 }
 
-// Sample customer data
-const customerData: CustomerProfile = {
-  name: "John Anderson",
-  email: "john.anderson@email.com",
-  phone: "+1 (555) 123-4567",
-  gender: "Male",
-  address: "123 Culinary Street, Foodville, CA 90210",
-  memberSince: "January 2024",
+// Sample customer data fallback
+const fallbackProfileData: CustomerProfile = {
+  name: "",
+  email: "",
+  phone: "",
+  gender: "",
+  address: "",
+  memberSince: "",
   profileImage: "/profile/profile_pic.jpg"
 };
 
-// Sample liked dishes data
-const likedDishes: LikedDish[] = [
+// Sample liked dishes data fallback
+const fallbackLikedDishes: LikedDish[] = [
   {
     id: 1,
     name: "Signature Wagyu Steak",
@@ -106,10 +107,142 @@ const likedDishes: LikedDish[] = [
   }
 ];
 
+const unwrapResponse = (response: any) =>
+  response && typeof response === "object" && "data" in response ? response.data : response;
+
+const formatMemberSince = (value?: string) => {
+  if (!value) return "Member";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+};
+
+const formatLikedDate = (value?: string) => {
+  if (!value) return "Recently";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const mapProfileResponseToCustomer = (data: any): CustomerProfile => {
+  if (!data || typeof data !== 'object') {
+    return fallbackProfileData;
+  }
+
+  return {
+    name: data.fullName || data.username || fallbackProfileData.name,
+    email: data.email || fallbackProfileData.email,
+    phone: data.phoneNumber || fallbackProfileData.phone,
+    gender: data.gender || fallbackProfileData.gender,
+    address: data.address || fallbackProfileData.address,
+    memberSince: formatMemberSince(data.memberSince),
+    profileImage: data.profileImageUrl || fallbackProfileData.profileImage,
+  };
+};
+
+const mapLikedDishesResponse = (items: any[]): LikedDish[] => {
+  if (!Array.isArray(items)) {
+    return fallbackLikedDishes;
+  }
+
+  return items.map((item, index) => ({
+    id: item?.id ?? index + 1,
+    name: item?.name ?? `Favorite Dish ${index + 1}`,
+    description: item?.description ?? 'Customer favorite item',
+    price: Number(item?.price ?? 0),
+    image: item?.imageUrl ?? item?.image ?? fallbackLikedDishes[index % fallbackLikedDishes.length].image,
+    category: item?.category?.name ?? item?.category ?? 'Chef Special',
+    likedDate: formatLikedDate(item?.likedDate ?? item?.likedAt),
+  }));
+};
+
+const getStoredUserId = (): number | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('userInfo');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.id ?? parsed?.userId ?? null;
+  } catch {
+    return null;
+  }
+};
+
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'liked'>('profile');
   const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState(customerData);
+  const [profileData, setProfileData] = useState<CustomerProfile>(fallbackProfileData);
+  const [persistedProfile, setPersistedProfile] = useState<CustomerProfile>(fallbackProfileData);
+  const [likedDishesList, setLikedDishesList] = useState<LikedDish[]>(fallbackLikedDishes);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [loadingLiked, setLoadingLiked] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    // const resolvedId = getStoredUserId();
+    const resolvedId = 1;
+    console.log('Resolved User ID:', resolvedId);
+    setUserId(resolvedId);
+
+    const fetchProfile = async (id: number) => {
+      setLoadingProfile(true);
+      try {
+        const response = await profileService.getProfileById(id);
+        console.log('Profile response:', response);
+        if (!isMounted) return;
+        const mappedProfile = mapProfileResponseToCustomer(unwrapResponse(response));
+        setProfileData(mappedProfile);
+        setPersistedProfile(mappedProfile);
+      } catch (error) {
+        console.error('Failed to load profile data:', error);
+        if (isMounted) {
+          setProfileData(fallbackProfileData);
+          setPersistedProfile(fallbackProfileData);
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingProfile(false);
+        }
+      }
+    };
+
+    const fetchLikedDishes = async (id: number) => {
+      setLoadingLiked(true);
+      try {
+        const response = await profileService.getLikedDishes(id);
+        if (!isMounted) return;
+        const payload = unwrapResponse(response);
+        const normalized = mapLikedDishesResponse(
+          Array.isArray(payload?.content) ? payload.content : Array.isArray(payload) ? payload : []
+        );
+        setLikedDishesList(normalized);
+      } catch (error) {
+        console.error('Failed to load liked dishes:', error);
+        if (isMounted) {
+          setLikedDishesList(fallbackLikedDishes);
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingLiked(false);
+        }
+      }
+    };
+
+    if (resolvedId) {
+      fetchProfile(resolvedId);
+      fetchLikedDishes(resolvedId);
+    } else {
+      setProfileData(fallbackProfileData);
+      setPersistedProfile(fallbackProfileData);
+      setLikedDishesList(fallbackLikedDishes);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleInputChange = (field: keyof CustomerProfile, value: string) => {
     setProfileData(prev => ({
@@ -118,13 +251,46 @@ export default function ProfilePage() {
     }));
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    alert('Profile updated successfully!');
+  const handleSave = async () => {
+    if (!userId) {
+      setPersistedProfile(profileData);
+      setIsEditing(false);
+      alert('Profile updated locally.');
+      return;
+    }
+
+    try {
+      setSavingProfile(true);
+      await profileService.updateProfile(userId, {
+        fullName: profileData.name,
+        email: profileData.email,
+        phoneNumber: profileData.phone,
+        gender: profileData.gender,
+        address: profileData.address,
+        profileImageUrl: profileData.profileImage,
+      });
+      setPersistedProfile(profileData);
+      setIsEditing(false);
+      alert('Profile updated successfully!');
+    } catch (error: any) {
+      console.error('Failed to update profile:', error);
+      alert(error?.message || 'Failed to update profile. Please try again.');
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
-  const handleRemoveLike = (dishId: number) => {
-    alert(`Removed dish ${dishId} from liked dishes!`);
+  const handleRemoveLike = async (dishId: number) => {
+    try {
+      if (userId) {
+        await profileService.removeLikedDish(dishId, userId);
+      }
+      setLikedDishesList((prev) => prev.filter((dish) => dish.id !== dishId));
+      alert(`Removed dish ${dishId} from liked dishes!`);
+    } catch (error: any) {
+      console.error('Failed to remove liked dish:', error);
+      alert(error?.message || 'Failed to remove liked dish.');
+    }
   };
 
   return (
@@ -179,6 +345,9 @@ export default function ProfilePage() {
                 </h1>
                 <p className="text-gray-600 mb-1">{profileData.email}</p>
                 <p className="text-sm text-gray-500">Member since {profileData.memberSince}</p>
+                {loadingProfile && (
+                  <p className="text-xs text-gray-400 mt-1">Refreshing profile...</p>
+                )}
               </div>
 
               {/* Edit Button */}
@@ -194,17 +363,22 @@ export default function ProfilePage() {
                   <div className="flex gap-3">
                     <button
                       onClick={handleSave}
-                      className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-300 font-semibold shadow-lg"
+                      disabled={savingProfile}
+                      className={`px-6 py-3 rounded-lg font-semibold shadow-lg transition-colors duration-300 ${
+                        savingProfile
+                          ? 'bg-green-400 text-white cursor-not-allowed'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
                     >
-                      Save
+                      {savingProfile ? 'Saving...' : 'Save'}
                     </button>
-                    <button
-                      onClick={() => {
-                        setIsEditing(false);
-                        setProfileData(customerData);
-                      }}
-                      className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-300 font-semibold shadow-lg"
-                    >
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      setProfileData(persistedProfile);
+                    }}
+                    className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-300 font-semibold shadow-lg"
+                  >
                       Cancel
                     </button>
                   </div>
@@ -236,7 +410,7 @@ export default function ProfilePage() {
                 }`}
               >
                 <span className="text-xl mr-2">❤️</span>
-                Liked Dishes ({likedDishes.length})
+                Liked Dishes ({likedDishesList.length})
               </button>
             </div>
           </div>
@@ -353,12 +527,16 @@ export default function ProfilePage() {
                   <h2 className={`${italiana.className} text-3xl`}>
                     Your Favorite Dishes
                   </h2>
-                  <p className="text-gray-600">
-                    {likedDishes.length} {likedDishes.length === 1 ? 'dish' : 'dishes'}
-                  </p>
+                    <p className="text-gray-600">
+                      {likedDishesList.length} {likedDishesList.length === 1 ? 'dish' : 'dishes'}
+                    </p>
                 </div>
 
-                {likedDishes.length === 0 ? (
+                {loadingLiked ? (
+                  <div className="text-center py-16 text-gray-500">
+                    Loading liked dishes...
+                  </div>
+                ) : likedDishesList.length === 0 ? (
                   <div className="text-center py-16">
                     <div className="text-6xl mb-4">💔</div>
                     <h3 className={`${italiana.className} text-2xl mb-2`}>No Liked Dishes Yet</h3>
@@ -371,7 +549,7 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {likedDishes.map((dish) => (
+                    {likedDishesList.map((dish) => (
                       <div key={dish.id} className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-[#D4AF37] transition-all duration-300 shadow-md hover:shadow-xl group">
                         
                         {/* Dish Image */}

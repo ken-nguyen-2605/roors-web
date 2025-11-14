@@ -43,9 +43,9 @@ export const fetchTableAvailability = async (
 	if (params.guests > 0) {
 		Object.values(floorLayouts).forEach((floor) => {
 			floor.tables.forEach((table) => {
-				if (table.seats < params.guests) {
+				if (table.seats != getTableCapacity(params.guests)) {
 					notEnoughSpaceTables.push(table.id);
-				}
+				}	
 			});
 		});
 	}
@@ -55,3 +55,10 @@ export const fetchTableAvailability = async (
 		notEnoughSpaceTables,
 	};
 };
+
+function getTableCapacity(numberOfGuests: number): number {
+	if (numberOfGuests <= 2) return 2;
+	if (numberOfGuests <= 4) return 4;
+	if (numberOfGuests <= 8) return 8;
+	return 10;	
+}		

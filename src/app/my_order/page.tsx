@@ -30,8 +30,9 @@ interface Order {
   orderNumber: string;
   date: string;
   time: string;
-  status: "pending" | "confirmed" | "preparing" | "ready" | "delivering" | "completed" | "cancelled";
+  status: "pending" | "preparing" | "ready" | "delivering" | "completed" | "cancelled";
   items: OrderItem[];
+  subtotal: number;
   total: number;
   paymentMethod: string;
   deliveryType: "dine-in" | "takeaway" | "delivery";
@@ -52,7 +53,7 @@ const statusColors = {
 };
 
 const cardColors = ["#F5F4ED", "#FFFFFF", "#7A7A76", "#989793"] as const;
-type FilterType = "all" | "pending" | "confirmed" | "preparing" | "ready" | "delivering" | "completed" | "cancelled";
+type FilterType = "all" | "pending" | "preparing" | "ready" | "delivering" | "completed" | "cancelled";
 
 // Rating Component for Overall Order
 interface RatingComponentProps {
@@ -248,6 +249,7 @@ export default function OrderHistory() {
       time,
       status,
       items,
+      subtotal: o.subtotal,
       total: o.totalAmount,
       paymentMethod: o.payment?.paymentMethod || "Cash",
       deliveryType,
@@ -505,7 +507,7 @@ export default function OrderHistory() {
 
           {/* Filter Tabs */}
           <div className="flex flex-row gap-5 mx-auto flex-wrap justify-center" data-aos="fade-up" data-aos-delay="100" data-aos-duration="650">
-            {(["all", "pending", "confirmed", "preparing", "ready", "delivering", "completed", "cancelled"] as FilterType[]).map((f) => (
+            {(["all", "pending", "preparing", "ready", "delivering", "completed", "cancelled"] as FilterType[]).map((f) => (
               <button
                 key={f}
                 onClick={() => setActiveFilter(f)}
@@ -674,7 +676,7 @@ export default function OrderHistory() {
                         <div className={`mt-4 pt-4 border-t ${isLightBackground ? "border-black/20" : "border-white/30"}`}>
                           <div className="flex justify-between items-center mb-2">
                             <span>Subtotal</span>
-                            <span>${order.total.toFixed(2)}</span>
+                            <span>${order.subtotal.toFixed(2)}</span>
                           </div>
                           <div className="flex justify-between items-center mb-2">
                             <span>Tax (10%)</span>
@@ -693,7 +695,7 @@ export default function OrderHistory() {
                           >
                             <span>Total</span>
                             <span>
-                              ${(order.total * 1.1 + (order.deliveryType === "delivery" ? 5 : 0)).toFixed(2)}
+                              ${(order.subtotal * 1.1 + (order.deliveryType === "delivery" ? 5 : 0)).toFixed(2)}
                             </span>
                           </div>
                         </div>

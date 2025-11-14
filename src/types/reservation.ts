@@ -13,7 +13,7 @@ export interface Table {
 	id: string;
 	x: number;
 	y: number;
-	seats: 2 | 4 | 8;
+	seats: 2 | 4 | 8 | 10;
 	tableNumber: string;
 	rotation?: number;
 }

@@ -198,7 +198,9 @@ class OrderService {
   // Cancel an order with optional reason
   async cancelOrder(orderId, reason) {
     try {
-      const response = await apiService.post(`/api/orders/${orderId}/cancel`, { reason });
+      const cancellationReason = reason || "";
+
+      const response = await apiService.post(`/api/orders/${orderId}/cancel`, { reason: cancellationReason });
       return {
         success: true,
         data: response,
