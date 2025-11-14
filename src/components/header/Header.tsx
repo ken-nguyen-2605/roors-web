@@ -43,20 +43,20 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
                     <Link href="/menu">Menus</Link>
                     <Link href="/reservation/">Reservation</Link>
                 </div>
-                <Icon icon="mdi:bell" className="w-[28px] h-[32px]"/>
+                <Icon icon="mdi:bell" className="w-[28px] h-[32px] "/>
                 
                 {/* Profile Dropdown */}
-                <div className="relative" ref={profileRef}>
+                <div className="relative flex items-center" ref={profileRef}>
                     <button 
                         onClick={() => setIsProfileOpen(!isProfileOpen)}
                         className="focus:outline-none hover:opacity-80 transition-opacity"
                     >
-                        <FaUserCircle className="w-[30px] h-[30px]"/>
+                        <FaUserCircle className="w-[28px] h-[28px]"/>
                     </button>
 
                     {/* Dropdown Menu */}
                     {isProfileOpen && (
-                        <div className="absolute right-0 mt-2 w-48 bg-black border border-yellow-600/30 rounded-lg shadow-lg overflow-hidden">
+                        <div className="absolute top-9 right-0 mt-2 w-48 bg-black border border-yellow-600/30 rounded-lg shadow-lg overflow-hidden">
                             {isLoggedIn ? (
                                 // Logged in menu
                                 <>

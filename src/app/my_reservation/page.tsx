@@ -1,11 +1,15 @@
+// Reservation Date -> dtb
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SlideBackground from "@/utils/SlideBackground";
 import Star from "@/components/decorativeComponents/Star";
 import Line from "@/components/decorativeComponents/Line";
 import Image from "next/image";
 import { Inria_Serif, Italiana } from "next/font/google";
+import reservationService from "@/services/reservationService";
+import { useRouter } from "next/navigation";
 
 const inriaSerif = Inria_Serif({
   weight: ["300"],
@@ -19,82 +23,131 @@ const italiana = Italiana({
 
 interface Reservation {
   id: number;
-  date: string;
-  time: string;
-  guests: number;
-  status: "upcoming" | "completed" | "cancelled";
-  table: string;
+  reservationDate: string;
+  reservationTime: string;  
+  numberOfGuests: number;
+  status: "CONFIRMED" | "ARRIVED" | "CANCELLED" | "NO_SHOW";
+  tableNumber?: string;
+  specialRequests?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
 }
 
-const reservations: Reservation[] = [
-  {
-    id: 1,
-    date: "2025-02-15",
-    time: "19:00",
-    guests: 4,
-    status: "upcoming",
-    table: "Table 12",
-  },
-  {
-    id: 2,
-    date: "2025-01-20",
-    time: "18:30",
-    guests: 2,
-    status: "completed",
-    table: "Table 5",
-  },
-  {
-    id: 3,
-    date: "2025-01-10",
-    time: "20:00",
-    guests: 6,
-    status: "completed",
-    table: "Table 8",
-  },
-  {
-    id: 4,
-    date: "2024-12-25",
-    time: "19:30",
-    guests: 3,
-    status: "cancelled",
-    table: "Table 3",
-  },
-  {
-    id: 5,
-    date: "2025-03-01",
-    time: "18:00",
-    guests: 2,
-    status: "upcoming",
-    table: "Table 7",
-  },
-  {
-    id: 6,
-    date: "2024-12-20",
-    time: "20:30",
-    guests: 5,
-    status: "completed",
-    table: "Table 15",
-  },
-];
-
 const statusColors = {
-  upcoming: "#4CAF50",
-  completed: "#989793",
-  cancelled: "#D32F2F",
+  PENDING: "#FF9800",
+  CONFIRMED: "#4CAF50",
+  ARRIVED: "#2196F3",
+  COMPLETED: "#989793",
+  CANCELLED: "#D32F2F",
+  NO_SHOW: "#757575",
 };
 
 const cardColors = ["#F5F4ED", "#FFFFFF", "#7A7A76", "#989793"];
 
-type FilterType = "all" | "upcoming" | "completed" | "cancelled";
+type FilterType = "all" | "PENDING" | "CONFIRMED" | "ARRIVED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 
 export default function ReservationHistory() {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch reservations on component mount
+  useEffect(() => {
+    fetchReservations();
+  }, []);
+
+  const fetchReservations = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await reservationService.getMyReservations();
+      
+      if (response.success && response.data) {
+        // Sort reservations by date (newest first)
+        const sortedReservations = response.data.sort((a: Reservation, b: Reservation) => {
+          const dateA = new Date(`${a.reservationDate}T${a.reservationTime}`);
+          const dateB = new Date(`${b.reservationDate}T${b.reservationTime}`);
+          return dateB.getTime() - dateA.getTime();
+        });
+        
+        setReservations(sortedReservations);
+      } else {
+        setError(response.message || "Failed to fetch reservations");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
+      console.error("Error fetching reservations:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter reservations based on active filter
   const filteredReservations =
     activeFilter === "all"
       ? reservations
       : reservations.filter((res) => res.status === activeFilter);
+
+  // Categorize reservations for quick filter buttons
+  const confirmedReservations = reservations.filter(
+    (res) => res.status === "CONFIRMED"
+  );
+  const arrivedReservations = reservations.filter(
+    (res) => res.status === "ARRIVED"
+  );
+  const cancelledReservations = reservations.filter(
+    (res) => res.status === "CANCELLED"
+  );
+  const NoShowReservations = reservations.filter(
+    (res) => res.status === "NO_SHOW"
+  );
+  
+
+  // Handle cancel reservation
+  const handleCancelReservation = async (reservationId: number) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this reservation?"
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      const response = await reservationService.cancelReservation(reservationId);
+      
+      if (response.success) {
+        alert("Reservation cancelled successfully!");
+        fetchReservations(); // Refresh the list
+      } else {
+        alert(response.message || "Failed to cancel reservation");
+      }
+    } catch (err) {
+      alert("An error occurred while cancelling the reservation");
+      console.error("Error cancelling reservation:", err);
+    }
+  };
+
+  // Handle modify reservation
+  const handleModifyReservation = (reservationId: number) => {
+    router.push(`/reservations/modify/${reservationId}`);
+  };
+
+  // Handle book again
+  const handleBookAgain = () => {
+    router.push("/reservations/new");
+  };
+
+  // Check if reservation can be modified/cancelled
+  const canModifyReservation = (reservation: Reservation) => {
+    return reservationService.canModifyReservation(reservation);
+  };
+
+  const canCancelReservation = (reservation: Reservation) => {
+    return reservationService.canCancelReservation(reservation);
+  };
 
   return (
     <section className="relative">
@@ -180,42 +233,93 @@ export default function ReservationHistory() {
                 : "hover:bg-black hover:text-white"
             }`}
           >
-            All
+            All ({reservations.length})
           </button>
           <button
-            onClick={() => setActiveFilter("upcoming")}
+            onClick={() => setActiveFilter("CONFIRMED")}
             className={`px-8 py-2 border-2 border-black transition duration-300 ${
-              activeFilter === "upcoming"
+              activeFilter === "CONFIRMED"
                 ? "bg-black text-white"
                 : "hover:bg-black hover:text-white"
             }`}
           >
-            Upcoming
+            Confirmed ({confirmedReservations.length})
           </button>
           <button
-            onClick={() => setActiveFilter("completed")}
+            onClick={() => setActiveFilter("ARRIVED")}
             className={`px-8 py-2 border-2 border-black transition duration-300 ${
-              activeFilter === "completed"
+              activeFilter === "COMPLETED"
                 ? "bg-black text-white"
                 : "hover:bg-black hover:text-white"
             }`}
           >
-            Completed
+            Arrived ({arrivedReservations.length})
           </button>
           <button
-            onClick={() => setActiveFilter("cancelled")}
+            onClick={() => setActiveFilter("NO_SHOW")}
             className={`px-8 py-2 border-2 border-black transition duration-300 ${
-              activeFilter === "cancelled"
+              activeFilter === "COMPLETED"
                 ? "bg-black text-white"
                 : "hover:bg-black hover:text-white"
             }`}
           >
-            Cancelled
+            No show ({NoShowReservations.length})
+          </button>
+          <button
+            onClick={() => setActiveFilter("CANCELLED")}
+            className={`px-8 py-2 border-2 border-black transition duration-300 ${
+              activeFilter === "CANCELLED"
+                ? "bg-black text-white"
+                : "hover:bg-black hover:text-white"
+            }`}
+          >
+            Cancelled ({cancelledReservations.length})
           </button>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div
+            className="flex flex-col items-center gap-6 py-20"
+            data-aos="fade-up"
+          >
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-black"></div>
+            <p className="text-2xl text-gray-600">Loading your reservations...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div
+            className="flex flex-col items-center gap-6 py-20"
+            data-aos="fade-up"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-24 w-24 text-red-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <p className="text-2xl text-red-500">{error}</p>
+            <button
+              onClick={fetchReservations}
+              className="px-8 py-3 bg-black text-white hover:bg-gray-800 transition duration-300 mt-4"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
         {/* Reservations List */}
-        {filteredReservations.length > 0 ? (
+        {!loading && !error && filteredReservations.length > 0 && (
           <div className="flex flex-col gap-6 mx-auto">
             {filteredReservations.map((reservation, i) => (
               <div
@@ -236,7 +340,7 @@ export default function ReservationHistory() {
                       backgroundColor: statusColors[reservation.status],
                     }}
                   >
-                    {reservation.status}
+                    {reservationService.getStatusDisplay(reservation.status)}
                   </span>
                 </div>
 
@@ -264,7 +368,7 @@ export default function ReservationHistory() {
                           />
                         </svg>
                         <span className="text-2xl font-medium">
-                          {new Date(reservation.date).toLocaleDateString(
+                          {new Date(reservation.reservationDate).toLocaleDateString(
                             "en-US",
                             {
                               weekday: "long",
@@ -293,7 +397,7 @@ export default function ReservationHistory() {
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                           />
                         </svg>
-                        <span>{reservation.time}</span>
+                        <span>{reservation.reservationTime}</span>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -312,15 +416,38 @@ export default function ReservationHistory() {
                           />
                         </svg>
                         <span>
-                          {reservation.guests}{" "}
-                          {reservation.guests === 1 ? "Guest" : "Guests"}
+                          {reservation.numberOfGuests}{" "}
+                          {reservation.numberOfGuests === 1 ? "Guest" : "Guests"}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      {reservation.tableNumber && (
+                        <div className="flex items-center gap-2">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
+                          </svg>
+                          <span>{reservation.tableNumber}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Special Requests */}
+                    {reservation.specialRequests && (
+                      <div className="flex items-start gap-2 text-sm mt-2">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
+                          className="h-5 w-5 flex-shrink-0"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -329,34 +456,45 @@ export default function ReservationHistory() {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
                           />
                         </svg>
-                        <span>{reservation.table}</span>
+                        <span className="italic">{reservation.specialRequests}</span>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Action Buttons */}
-                  {reservation.status === "upcoming" && (
+                  {(reservation.status === "CONFIRMED") && (
                     <div className="flex flex-col gap-2">
-                      <button className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300">
-                        Modify
-                      </button>
-                      <button
-                        className={`px-6 py-2 border-2 transition duration-300 ${
-                          i % cardColors.length === 2
-                            ? "border-white hover:bg-white hover:text-black"
-                            : "border-black hover:bg-black hover:text-white"
-                        }`}
-                      >
-                        Cancel
-                      </button>
+                      {canModifyReservation(reservation) && (
+                        <button
+                          onClick={() => handleModifyReservation(reservation.id)}
+                          className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300"
+                        >
+                          Modify
+                        </button>
+                      )}
+                      {canCancelReservation(reservation) && (
+                        <button
+                          onClick={() => handleCancelReservation(reservation.id)}
+                          className={`px-6 py-2 border-2 transition duration-300 ${
+                            i % cardColors.length === 2
+                              ? "border-white hover:bg-white hover:text-black"
+                              : "border-black hover:bg-black hover:text-white"
+                          }`}
+                        >
+                          Cancel
+                        </button>
+                      )}
                     </div>
                   )}
 
-                  {reservation.status === "completed" && (
-                    <button className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300">
+                  {reservation.status === "ARRIVED" && (
+                    <button
+                      onClick={handleBookAgain}
+                      className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300"
+                    >
                       Book Again
                     </button>
                   )}
@@ -364,8 +502,10 @@ export default function ReservationHistory() {
               </div>
             ))}
           </div>
-        ) : (
-          // Empty State (show when no reservations match filter)
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && filteredReservations.length === 0 && (
           <div
             className="flex flex-col items-center gap-6 py-20"
             data-aos="fade-up"
@@ -387,9 +527,12 @@ export default function ReservationHistory() {
               />
             </svg>
             <p className="text-2xl text-gray-500">
-              No {activeFilter !== "all" ? activeFilter : ""} reservations found
+              No {activeFilter !== "all" ? reservationService.getStatusDisplay(activeFilter as any).toLowerCase() : ""} reservations found
             </p>
-            <button className="px-8 py-3 bg-black text-white hover:bg-gray-800 transition duration-300 mt-4">
+            <button
+              onClick={handleBookAgain}
+              className="px-8 py-3 bg-black text-white hover:bg-gray-800 transition duration-300 mt-4"
+            >
               Make a Reservation
             </button>
           </div>

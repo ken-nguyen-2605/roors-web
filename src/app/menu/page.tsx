@@ -95,7 +95,7 @@ export default function Menu() {
                 maxPrice: maxPrice ? parseFloat(maxPrice) : null,
                 minRating: rating ? parseInt(rating) : 0,
                 page: 0,
-                size: 100, // Load all for now, add pagination later if needed
+                size: 500, // Load all for now, add pagination later if needed
             };
 
            const response = await menuService.getFilteredMenuItems(filters);
@@ -191,7 +191,7 @@ export default function Menu() {
 
                 <section className="relative w-full h-fit mx-auto text-center mt-[75px]">
                     <div
-                        className="absolute inset-x-0 -top-[235px] h-[700px] bg-no-repeat -z-10"
+                        className="absolute inset-x-0 -top-[458px] h-[700px] bg-no-repeat -z-10"
                         style={{ backgroundImage: "url('/background/Group 14.png')" }}
                         aria-hidden="true"
                     />
@@ -331,7 +331,7 @@ export default function Menu() {
                                 <div className="relative w-fit flex justify-end items-center gap-2.5">
                                     {note.length > 0 &&
                                         <Link
-                                            href="/"
+                                            href="/checkout_page"
                                             className="flex-center w-[150px] h-[35px] p-2 text-xl bg-[#E0E0D9] border-1 rounded-2xl transition duration-150 hover:scale-105"
                                         >
                                             Comfirm

@@ -40,7 +40,7 @@ export default function DishCard({id, image, name, description, price, categorie
             </div>
             <div className="w-full h-1/2 p-3 border-b-1 border-black/50 bg-[#F4F5ED]">
                 <div className="flex flex-row gap-2.5 text-left text-xl font-medium">{name}
-                    {categories?.some(type => type === "vegetarian") &&
+                    {categories?.some(type => type === "Vegetarian") &&
                         <Icon icon="mdi:leaf" color="#007E47"/>
                     }
                 </div>

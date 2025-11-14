@@ -1,7 +1,21 @@
-import axios from 'axios';
-
+//import axios from 'axios';
 import apiService from './api';
+
 // ==================== CATEGORY SERVICES ====================
+
+/**
+ * Get all categories (for admin panel)
+ * Endpoint: GET /api/categories
+ */
+export const getAllCategories = async () => {
+  try {
+    const response = await apiService.get('/api/categories');
+    console.log("API Response(cate):", response);    
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
 
 /**
  * Get all active categories
@@ -9,7 +23,8 @@ import apiService from './api';
  */
 export const getActiveCategories = async () => {
   try {
-    const response = await apiService.get('/api/categories/active');    
+    const response = await apiService.get('/api/categories/active');
+    
     return response;
   } catch (error) {
     throw error.response?.data || error.message;
@@ -42,6 +57,45 @@ export const getCategoryBySlug = async (slug) => {
   }
 };
 
+/**
+ * Create new category (admin only)
+ * Endpoint: POST /api/categories
+ */
+export const createCategory = async (categoryData) => {
+  try {
+    const response = await apiService.post('/api/categories', categoryData);
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Update existing category (admin only)
+ * Endpoint: PUT /api/categories/{id}
+ */
+export const updateCategory = async (id, categoryData) => {
+  try {
+    const response = await apiService.put(`/api/categories/${id}`, categoryData);
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Delete category (admin only)
+ * Endpoint: DELETE /api/categories/{id}
+ */
+export const deleteCategory = async (id) => {
+  try {
+    const response = await apiService.delete(`/api/categories/${id}`);
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 // ==================== MENU ITEM SERVICES ====================
 
 /**
@@ -50,10 +104,18 @@ export const getCategoryBySlug = async (slug) => {
  */
 export const getAllMenuItems = async (params = {}) => {
   try {
-    const { page = 0, size = 12, sortBy = 'name', sortDir = 'asc' } = params;
-    const response = await apiService.get('/api/menu', {
-      params: { page, size, sortBy, sortDir },
+    const { page = 0, size = 500, sortBy = 'name', sortDir = 'asc' } = params;
+
+    console.log("Sending params to backend:", { page, size, sortBy, sortDir });
+
+    const queryParams = new URLSearchParams({
+      page,
+      size,
+      sortBy,
+      sortDir,
     });
+
+    const response = await apiService.get(`/api/menu?${queryParams.toString()}`);
     console.log("API Response:", response);
     return response;
   } catch (error) {
@@ -107,7 +169,7 @@ export const getMenuItemBySlug = async (slug) => {
  * Search menu items by keyword
  * Endpoint: GET /api/menu/search
  */
-export const searchMenuItems = async (keyword, params = {}) => {
+export const searchMenuItems = async (keyword= "", params = {}) => {
   try {
     const { page = 0, size = 12 } = params;
     const response = await apiService.get('/api/menu/search', {
@@ -129,6 +191,97 @@ export const filterMenuItemsByPrice = async (minPrice, maxPrice, params = {}) =>
     const response = await apiService.get('/api/menu/filter/price', {
       params: { minPrice, maxPrice, page, size },
     });
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Get featured menu items
+ * Endpoint: GET /api/menu/featured
+ */
+export const getFeaturedMenuItems = async () => {
+  try {
+    const response = await apiService.get('/api/menu/featured');
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Get top rated menu items
+ * Endpoint: GET /api/menu/top-rated
+ */
+export const getTopRatedMenuItems = async () => {
+  try {
+    const response = await apiService.get('/api/menu/top-rated');
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Get popular menu items
+ * Endpoint: GET /api/menu/popular
+ */
+export const getPopularMenuItems = async () => {
+  try {
+    const response = await apiService.get('/api/menu/popular');
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Create new menu item (admin only)
+ * Endpoint: POST /api/menu
+ */
+export const createMenuItem = async (menuItemData) => {
+  try {
+    const response = await apiService.post('/api/menu', menuItemData);
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Update existing menu item (admin only)
+ * Endpoint: PUT /api/menu/{id}
+ */
+export const updateMenuItem = async (id, menuItemData) => {
+  try {
+    const response = await apiService.put(`/api/menu/${id}`, menuItemData);
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Toggle menu item availability (admin only)
+ * Endpoint: PATCH /api/menu/{id}/toggle-availability
+ */
+export const toggleMenuItemAvailability = async (id) => {
+  try {
+    const response = await apiService.patch(`/api/menu/${id}/toggle-availability`);
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Delete menu item (admin only)
+ * Endpoint: DELETE /api/menu/{id}
+ */
+export const deleteMenuItem = async (id) => {
+  try {
+    const response = await apiService.delete(`/api/menu/${id}`);
     return response;
   } catch (error) {
     throw error.response?.data || error.message;
@@ -179,15 +332,16 @@ export const getFilteredMenuItems = async (filters = {}) => {
       );
     } else if (categoryId) {
       // Get items by category
-      const categoryResponse = await getMenuItemsByCategory(categoryId, { page: 0, size: 100 });
+
+      const categoryResponse = await getMenuItemsByCategory(categoryId, { page: 0, size: 500 });
       items = categoryResponse.content || [];
     } else if (keyword) {
       // Search by keyword
-      const searchResponse = await searchMenuItems(keyword, { page: 0, size: 100 });
+      const searchResponse = await searchMenuItems(keyword,  {page: 0}, {size: 100} );
       items = searchResponse.content || [];
     } else {
       // Get all items
-      const allResponse = await getAllMenuItems({ page: 0, size: 100, sortBy, sortDir });
+      const allResponse = await getAllMenuItems({ page: 0, size: 9, sortBy, sortDir });
       items = allResponse.content || [];
     }
 
@@ -258,7 +412,6 @@ export const getFilteredMenuItems = async (filters = {}) => {
   }
 };
 
-
 // ==================== UTILITY FUNCTIONS ====================
 
 /**
@@ -266,29 +419,6 @@ export const getFilteredMenuItems = async (filters = {}) => {
  */
 export const formatPrice = (price, currency = '$') => {
   return `${currency}${parseFloat(price).toFixed(2)}`;
-};
-
-/**
- * Get spicy level display with emojis
- */
-export const getSpicyLevelDisplay = (level) => {
-  if (!level || level === 0) return '';
-  return '🌶️'.repeat(level);
-};
-
-/**
- * Get spicy level text
- */
-export const getSpicyLevelText = (level) => {
-  const levels = {
-    0: 'Not Spicy',
-    1: 'Mild',
-    2: 'Medium',
-    3: 'Hot',
-    4: 'Very Hot',
-    5: 'Extreme',
-  };
-  return levels[level] || 'Unknown';
 };
 
 /**
@@ -318,12 +448,36 @@ export const getRatingStars = (rating) => {
   );
 };
 
+/**
+ * Handle API errors consistently
+ */
+export const handleApiError = (error) => {
+  if (error.response) {
+    // Server responded with error status
+    const message = error.response.data?.message || error.response.statusText;
+    console.error('API Error:', message);
+    return { success: false, message };
+  } else if (error.request) {
+    // Request made but no response
+    console.error('Network Error:', error.request);
+    return { success: false, message: 'Network error. Please check your connection.' };
+  } else {
+    // Something else happened
+    console.error('Error:', error.message);
+    return { success: false, message: error.message };
+  }
+};
+
 // Export default object
 const menuService = {
   // Categories
+  getAllCategories,
   getActiveCategories,
   getCategoryById,
   getCategoryBySlug,
+  createCategory,
+  updateCategory,
+  deleteCategory,
 
   // Menu Items
   getAllMenuItems,
@@ -332,14 +486,20 @@ const menuService = {
   getMenuItemBySlug,
   searchMenuItems,
   filterMenuItemsByPrice,
+  getFeaturedMenuItems,
+  getTopRatedMenuItems,
+  getPopularMenuItems,
+  createMenuItem,
+  updateMenuItem,
+  toggleMenuItemAvailability,
+  deleteMenuItem,
   getFilteredMenuItems, // Combined filter
 
   // Utilities
   formatPrice,
-  getSpicyLevelDisplay,
-  getSpicyLevelText,
-  formatPreparationTime,
+  formatPreparationTime, 
   getRatingStars,
+  handleApiError,
 };
 
 export default menuService;
