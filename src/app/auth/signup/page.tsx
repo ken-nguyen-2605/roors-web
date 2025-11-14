@@ -151,10 +151,10 @@ export default function SignUpPage() {
           password: '',
           agreeToTerms: false
         });
-        // Redirect to login after 3 seconds
+        // Redirect to login after 1 seconds
         setTimeout(() => {
           router.push('/auth/login');
-        }, 3000);
+        }, 1000);
       } else {
         setApiError(result.message || 'Registration failed. Please try again.');
       }

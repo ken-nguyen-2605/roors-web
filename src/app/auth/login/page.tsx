@@ -288,7 +288,7 @@ export default function LoginPage() {
 
                     <p className={styles.form.textCenter}>
                       Don't have an account?{' '}
-                      <Link href="/signup" className={styles.form.linkBold}>
+                      <Link href="/auth/signup" className={styles.form.linkBold}>
                         Sign Up
                       </Link>
                     </p>
