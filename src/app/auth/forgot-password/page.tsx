@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
 import Link from 'next/link';
 import Star from "@/components/decorativeComponents/Star";
 import Line from "@/components/decorativeComponents/Line";
+import authService from "@/services/authService";
 
 const styles = {
   page: {
@@ -54,12 +55,13 @@ const styles = {
 };
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState<string>('');
+  const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
     if (error) setError('');
   };
@@ -76,25 +78,31 @@ export default function ForgotPasswordPage() {
     return true;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!validateEmail()) {
+      console.log('Validation failed');
       return;
     }
 
     setIsLoading(true);
+    setSuccessMessage('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Here you would call your password reset API
-      // const result = await authService.resetPassword(email);
-      
+      const result = await authService.forgotPassword(email.trim());
+
+      if (!result?.success) {
+        setError(result?.message || 'Failed to send reset email. Please try again.');
+        setIsSuccess(false);
+        return;
+      }
+
+      setError('');
       setIsSuccess(true);
+      setSuccessMessage(result.message || 'Password reset link sent to your email');
     } catch (err) {
-      setError('Failed to send reset email. Please try again.');
+      setError(err?.message || 'Failed to send reset email. Please try again.');
       console.error('Password reset error:', err);
     } finally {
       setIsLoading(false);
@@ -155,6 +163,10 @@ export default function ForgotPasswordPage() {
                       <p className={styles.form.subtitle}>
                         Enter your email address and we'll send you a link to reset your password
                       </p>
+
+                      {successMessage && (
+                        <p className="text-green-600 text-center">{successMessage}</p>
+                      )}
 
                       <form onSubmit={handleSubmit} className={styles.form.form}>
                         
@@ -224,7 +236,10 @@ export default function ForgotPasswordPage() {
                       <p className="text-gray-600 text-sm">
                         Didn't receive the email? Check your spam folder or{' '}
                         <button 
-                          onClick={() => setIsSuccess(false)}
+                          onClick={() => {
+                            setIsSuccess(false);
+                            setSuccessMessage('');
+                          }}
                           className="text-blue-600 hover:underline font-medium"
                         >
                           try again

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Icon } from "@iconify/react";
+import { FaStar } from "react-icons/fa";
 
 import Image from "next/image"
 import Link from "next/link";
@@ -39,12 +40,20 @@ export default function DishCard({id, image, name, description, price, categorie
                 </Link>
             </div>
             <div className="w-full h-1/2 p-3 border-b-1 border-black/50 bg-[#F4F5ED]">
-                <div className="flex flex-row gap-2.5 text-left text-xl font-medium">{name}
+                <div className="flex flex-row items-center gap-2.5 text-left text-xl font-medium">
+                    {name}
                     {categories?.some(type => type === "Vegetarian") &&
                         <Icon icon="mdi:leaf" color="#007E47"/>
                     }
                 </div>
-                <div className="text-justify">{description}</div>
+                
+                {/* Rating Display */}
+                <div className="flex items-center gap-1 my-1">
+                    <FaStar className="text-[#FBBF24]" size={16} />
+                    <span className="text-sm font-medium">{rating?.toFixed(1) || '0.0'}</span>
+                </div>
+                
+                <div className="text-justify text-sm">{description}</div>
             </div>
             <div className="flex items-center justify-between w-full h-1/6 px-3 bg-[#F4F5ED]">
                 <div className="w-fit text-lg">Price: {price}$</div>

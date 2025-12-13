@@ -9,6 +9,7 @@ class AuthService {
         email,
         password,
       });
+      console.log('Registration Response:', response);
       return {
         success: true,
         data: response,
@@ -72,7 +73,7 @@ class AuthService {
   // Forgot password
   async forgotPassword(email) {
     try {
-      const response = await apiService.post('/auth/forgot-password', {
+      const response = await apiService.post('/api/auth/forgot-password', {
         email,
       });
       return {
@@ -92,7 +93,7 @@ class AuthService {
   // Reset password
   async resetPassword(token, newPassword) {
     try {
-      const response = await apiService.post('/auth/reset-password', {
+      const response = await apiService.post('/api/auth/reset-password', {
         token,
         newPassword,
       });
@@ -161,6 +162,38 @@ class AuthService {
     }
     return null;
   }
+
+  async logout() {
+  try {
+    // Call backend logout endpoint
+    await apiService.post('/api/auth/logout');
+    
+    // Clear client-side storage
+    apiService.removeToken();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('userInfo');
+      localStorage.removeItem('rememberMe');
+    }
+    
+    return {
+      success: true,
+      message: 'Logged out successfully',
+    };
+  } catch (error) {
+    // Even if backend call fails, clear client-side data
+    apiService.removeToken();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('userInfo');
+      localStorage.removeItem('rememberMe');
+    }
+    
+    return {
+      success: true, // Still return success since client-side cleanup succeeded
+      message: 'Logged out successfully',
+    };
+  }
+}
+
 }
 
 export default new AuthService();

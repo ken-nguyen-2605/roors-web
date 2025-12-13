@@ -182,7 +182,7 @@ export default function ProfilePage() {
   useEffect(() => {
     let isMounted = true;
     // const resolvedId = getStoredUserId();
-    const resolvedId = 1;
+    const resolvedId = 253;
     console.log('Resolved User ID:', resolvedId);
     setUserId(resolvedId);
 
@@ -194,6 +194,7 @@ export default function ProfilePage() {
         if (!isMounted) return;
         const mappedProfile = mapProfileResponseToCustomer(unwrapResponse(response));
         setProfileData(mappedProfile);
+        console.log('Mapped Profile Data:', mappedProfile);
         setPersistedProfile(mappedProfile);
       } catch (error) {
         console.error('Failed to load profile data:', error);

@@ -120,6 +120,25 @@ class OrderService {
       };
     }
   }
+    async reOrder(orderId) {
+    try {
+      // POST to /api/orders/{id}/reorder
+      const response = await apiService.post(`/api/orders/${orderId}/reorder`);
+
+      return {
+        success: true,
+        data: response,
+        message: 'Order reordered successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Failed to reorder order',
+        status: error.status,
+      };
+    }
+  }
+
 
 
   /**

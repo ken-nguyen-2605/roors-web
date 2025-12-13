@@ -266,7 +266,7 @@ export default function OrderHistory() {
     (async () => {
       setLoading(true);
       setError(null);
-      const res = await orderService.getMyOrders({ page: 0, size: 50 });
+      const res = await orderService.getMyOrders({ page: 0, size: 50 }); 
       if (!mounted) return;
 
       if (!res?.success) {
@@ -305,9 +305,9 @@ export default function OrderHistory() {
 
   const confirmCancelOrder = async () => {
     if (!cancelModal.orderId) return;
-    const res = await orderService.cancelOrder(String(cancelModal.orderId), {
-      reason: "Customer requested cancellation",
-    });
+    const res = await orderService.cancelOrder(String(cancelModal.orderId), "Customer requested cancellation");
+
+
     if (!res?.success) {
       alert(res?.message || "Failed to cancel order");
     } else {
@@ -322,7 +322,7 @@ export default function OrderHistory() {
 
   const handleReorder = async (order: Order) => {
     try {
-      const res = await orderService.reorder(String(order.id));
+      const res = await orderService.reOrder(String(order.id));
       if (res?.success) {
         alert("Order placed successfully!");
         router.push("/my_order");
@@ -718,17 +718,16 @@ export default function OrderHistory() {
                     {/* Action Buttons */}
                     <div className="flex justify-end gap-3 mt-4">
                       {/* Show track/cancel for pending, confirmed, preparing, ready statuses */}
-                      {(order.status === "pending" || order.status === "confirmed" || 
-                        order.status === "preparing" || order.status === "ready") && (
+                      {(order.status === "pending") && (
                         <>
-                          <button
+                          {/* <button
                             onClick={() => handleTrackOrder(order.id)}
                             className={`px-6 py-2 border-2 transition duration-300 ${
                               isLightBackground ? "border-black hover:bg-black hover:text-white" : "border-white hover:bg-white hover:text-black"
                             }`}
                           >
                             Track Order
-                          </button>
+                          </button> */}
                           <button
                             onClick={() => handleCancelOrder(order.id, order.orderNumber)}
                             className={`px-6 py-2 border-2 transition duration-300 ${
