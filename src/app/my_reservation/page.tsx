@@ -67,18 +67,30 @@ export default function ReservationHistory() {
   const fetchReservations = async () => {
     setLoading(true);
     setError(null);
-    
     try {
       const response = await reservationService.getMyReservations();
-      
       if (response.success && response.data) {
-        // Sort reservations by date (newest first)
-        const sortedReservations = response.data.sort((a: Reservation, b: Reservation) => {
-          const dateA = new Date(a.startTime);
-          const dateB = new Date(b.startTime);
+        // Transform data
+        const transformedReservations: Reservation[] = response.data.map((item: any) => ({
+          id: item.id,
+          reservationDate: item.startTime.split('T')[0], // e.g., "2025-11-15"
+          reservationTime: item.startTime.split('T')[1], // e.g., "12:00:00"
+          numberOfGuests: item.numberOfGuests,
+          status: item.status,
+          tableNumber: item.diningTable?.name,
+          specialRequests: item.specialRequests, // Add more mapping if needed
+          customerName: item.user?.username, // Or however you want to get customer info
+          customerPhone: item.phone,
+          customerEmail: item.user?.email, // Update based on actual data
+        }));
+
+        // Sort transformed data by date+time (newest first)
+        const sortedReservations = transformedReservations.sort((a, b) => {
+          const dateA = new Date(`${a.reservationDate}T${a.reservationTime}`);
+          const dateB = new Date(`${b.reservationDate}T${b.reservationTime}`);
           return dateB.getTime() - dateA.getTime();
         });
-        
+
         setReservations(sortedReservations);
       } else {
         setError(response.message || "Failed to fetch reservations");
