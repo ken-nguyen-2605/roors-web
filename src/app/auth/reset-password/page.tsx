@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Star from "@/components/decorativeComponents/Star";
 import Line from "@/components/decorativeComponents/Line";
+import authService from "@/services/authService";
 
 const styles = {
   page: {
@@ -56,34 +57,41 @@ const styles = {
   },
 };
 
+type PasswordForm = {
+  password: string;
+  confirmPassword: string;
+};
+
+type ValidationErrors = Partial<Record<'password' | 'confirmPassword' | 'submit', string>>;
+
 export default function ResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [token, setToken] = useState('');
-  const [tokenValid, setTokenValid] = useState(true); // null = checking, true = valid, false = invalid
-  const [formData, setFormData] = useState({
+  const [tokenValid, setTokenValid] = useState<boolean | null>(null); // null = checking, true = valid, false = invalid
+  const [formData, setFormData] = useState<PasswordForm>({
     password: '',
     confirmPassword: ''
   });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<ValidationErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-//   useEffect(() => {
-//     // Get token from URL and validate it
-//     const resetToken = searchParams.get('token');
-    
-//     if (!resetToken) {
-//       setTokenValid(false);
-//       return;
-//     }
+  useEffect(() => {
+    const resetToken = searchParams.get('token');
 
-//     setToken(resetToken);
-//     validateToken(resetToken);
-//   }, [searchParams]);
+    if (!resetToken) {
+      setToken('');
+      setTokenValid(false);
+      return;
+    }
+
+    setToken(resetToken);
+    setTokenValid(true);
+  }, [searchParams]);
 
   useEffect(() => {
     if (isSuccess && countdown > 0) {
@@ -93,27 +101,11 @@ export default function ResetPasswordPage() {
 
       return () => clearTimeout(timer);
     } else if (isSuccess && countdown === 0) {
-      router.push('/signin');
+      router.push('/auth/login');
     }
   }, [isSuccess, countdown, router]);
 
-  const validateToken = async (resetToken) => {
-    try {
-      // Simulate API call to validate token
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Here you would call your API to validate the reset token
-      // const result = await authService.validateResetToken(resetToken);
-      
-      setTokenValid(true);
-    } catch (error) {
-      setTokenValid(false);
-      console.error('Token validation error:', error);
-    }
-  };
-
-
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -126,7 +118,7 @@ export default function ResetPasswordPage() {
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: ValidationErrors = {};
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
@@ -146,25 +138,32 @@ export default function ResetPasswordPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!validateForm()) {
       return;
     }
 
+    if (!token) {
+      setErrors({ submit: 'Reset token is missing or invalid.' });
+      return;
+    }
+
     setIsLoading(true);
+    setErrors(prev => ({ ...prev, submit: undefined }));
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Here you would call your password reset API
-      // const result = await authService.resetPasswordWithToken(token, formData.password);
-      
+      const result = await authService.resetPassword(token, formData.password);
+
+      if (!result?.success) {
+        setErrors({ submit: result?.message || 'Failed to reset password. Please try again.' });
+        return;
+      }
+
       setIsSuccess(true);
     } catch (error) {
-      setErrors({ submit: 'Failed to reset password. Please try again.' });
+      setErrors({ submit: error?.message || 'Failed to reset password. Please try again.' });
       console.error('Password reset error:', error);
     } finally {
       setIsLoading(false);
@@ -229,13 +228,13 @@ export default function ResetPasswordPage() {
           </p>
 
           <div className="space-y-4 pt-4">
-            <Link href="/forgot-password" className={`block ${styles.form.button}`}>
+            <Link href="/auth/forgot-password" className={`block ${styles.form.button}`}>
               Request New Reset Link
             </Link>
 
             <p className={styles.form.textCenter}>
-              <Link href="/signin" className={styles.form.link}>
-                Back to Sign In
+              <Link href="/auth/login" className={styles.form.link}>
+                Back to Login In
               </Link>
             </p>
           </div>
@@ -270,7 +269,7 @@ export default function ResetPasswordPage() {
           </p>
 
           <div className="space-y-4 pt-4">
-            <Link href="/signin" className={`block ${styles.form.button}`}>
+            <Link href="/auth/login" className={`block ${styles.form.button}`}>
               Sign In to Your Account
             </Link>
 
@@ -409,7 +408,7 @@ export default function ResetPasswordPage() {
           {/* Back to Sign In Link */}
           <p className={styles.form.textCenter}>
             Remember your password?{' '}
-            <Link href="/signin" className={styles.form.link}>
+            <Link href="/auth/login" className={styles.form.link}>
               Sign In
             </Link>
           </p>

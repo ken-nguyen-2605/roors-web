@@ -281,7 +281,7 @@ export default function LoginPage() {
 
                     {/* Links */}
                     <p className={styles.form.textCenter}>
-                      <Link href="/forgot-password" className={styles.form.link}>
+                      <Link href="/auth/forgot-password" className={styles.form.link}>
                         Forgot password?
                       </Link>
                     </p>

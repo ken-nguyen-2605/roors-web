@@ -72,7 +72,7 @@ class AuthService {
   // Forgot password
   async forgotPassword(email) {
     try {
-      const response = await apiService.post('/auth/forgot-password', {
+      const response = await apiService.post('/api/auth/forgot-password', {
         email,
       });
       return {
@@ -92,7 +92,7 @@ class AuthService {
   // Reset password
   async resetPassword(token, newPassword) {
     try {
-      const response = await apiService.post('/auth/reset-password', {
+      const response = await apiService.post('/api/auth/reset-password', {
         token,
         newPassword,
       });
