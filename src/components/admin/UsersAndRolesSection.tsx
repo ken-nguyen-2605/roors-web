@@ -10,10 +10,11 @@ interface User {
   email: string;
   phone: string;
   role: 'Manager' | 'Staff' | 'Customer';
-  status: 'Active' | 'Inactive' | 'On Leave';
+  status: 'Active' | 'Disabled';
   joinedDate: Date;
   lastActive: Date;
   permissions: string[];
+  disabled?: boolean;
 }
 
 export default function UsersAndRolesSection() {
@@ -45,8 +46,7 @@ export default function UsersAndRolesSection() {
   const getStatusColor = (status: User['status']) => {
     switch (status) {
       case 'Active': return 'bg-green-100 text-green-700';
-      case 'Inactive': return 'bg-gray-100 text-gray-700';
-      case 'On Leave': return 'bg-yellow-100 text-yellow-700';
+      case 'Disabled': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -103,7 +103,8 @@ export default function UsersAndRolesSection() {
           email: u.email,
           phone: u.phone || '',
           role: mapRole(u.role),
-          status: u.verified ? 'Active' : 'Inactive',
+          status: u.disabled ? 'Disabled' : 'Active',
+          disabled: u.disabled,
           joinedDate: new Date(),
           lastActive: new Date(),
           permissions: u.role === 'Manager'
@@ -198,7 +199,6 @@ export default function UsersAndRolesSection() {
                   <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
                   <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Last Active</th>
                   <th className="text-right px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -226,9 +226,9 @@ export default function UsersAndRolesSection() {
                         {user.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
+                    {/* <td className="px-6 py-4 text-sm text-gray-600">
                       {getTimeSince(user.lastActive)}
-                    </td>
+                    </td> */}
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
                         <button
@@ -240,6 +240,26 @@ export default function UsersAndRolesSection() {
                         </button>
                         {isManager && user.role !== 'Manager' && (
                           <>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  if (user.disabled) {
+                                    await apiService.post(`/api/admin/users/${user.id}/enable`);
+                                    setUsers(users.map(u => u.id === user.id ? { ...u, disabled: false, status: 'Active' } : u));
+                                  } else {
+                                    await apiService.post(`/api/admin/users/${user.id}/disable`);
+                                    setUsers(users.map(u => u.id === user.id ? { ...u, disabled: true, status: 'Disabled' } : u));
+                                  }
+                                } catch (err) {
+                                  console.error('Failed to toggle user', err);
+                                  alert('Failed to update user status');
+                                }
+                              }}
+                              className={`p-2 rounded-lg transition-colors ${user.disabled ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
+                              title={user.disabled ? 'Enable User' : 'Disable User'}
+                            >
+                              <Shield className="w-4 h-4" />
+                            </button>
                             {user.role !== 'Staff' && (
                               <button
                                 onClick={async () => {
@@ -257,12 +277,6 @@ export default function UsersAndRolesSection() {
                                 <ArrowUpRight className="w-4 h-4" />
                               </button>
                             )}
-                            <button
-                              className="p-2 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors"
-                              title="Edit"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
                             <button
                               onClick={() => handleDeleteUser(user.id)}
                               className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"

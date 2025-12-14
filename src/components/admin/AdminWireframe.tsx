@@ -125,7 +125,7 @@ export default function AdminWireframe({ children }: Props) {
                       {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                   </div>
-                  {isManager && (
+                  {/* {isManager && (
                     <Link
                       href="/admin/users"
                       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
@@ -133,7 +133,7 @@ export default function AdminWireframe({ children }: Props) {
                       <Shield className="w-4 h-4" />
                       Manage Users
                     </Link>
-                  )}
+                  )} */}
                 </div>
               </div>
             </div>

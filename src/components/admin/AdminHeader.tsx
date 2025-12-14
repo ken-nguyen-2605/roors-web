@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import { FaUserCircle } from "react-icons/fa";
 import { Italianno } from 'next/font/google';
@@ -27,16 +27,47 @@ export default function AdminHeader() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [role, setRole] = useState<'MANAGER' | 'STAFF' | 'CUSTOMER' | null>(null);
 
-  const navigationLinks = [
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const raw = localStorage.getItem('userInfo');
+      try {
+        const parsed = raw ? JSON.parse(raw) : null;
+        const r = (parsed?.role || '').toUpperCase();
+        if (r === 'MANAGER' || r === 'STAFF') {
+          setRole(r as 'MANAGER' | 'STAFF');
+        } else {
+          setRole('CUSTOMER');
+        }
+      } catch (e) {
+        setRole(null);
+      }
+    }
+  }, []);
+
+  const managerLinks = [
     { href: '/admin', label: 'Dashboard', icon: 'mdi:view-dashboard' },
+    { href: '/admin/reports', label: 'Reports', icon: 'mdi:chart-bar' },
+    { href: '/admin/users', label: 'Users Management', icon: 'mdi:shield-account' },
+  ];
+
+  const staffLinks = [
     { href: '/admin/orders', label: 'Orders', icon: 'mdi:shopping' },
     { href: '/admin/deliveries', label: 'Deliveries', icon: 'mdi:truck-delivery' },
     { href: '/admin/menu', label: 'Menu', icon: 'mdi:food' },
     { href: '/admin/reservations', label: 'Reservations', icon: 'mdi:calendar-clock' },
     { href: '/admin/customers', label: 'Customers', icon: 'mdi:account-group' },
-    { href: '/admin/reports', label: 'Reports', icon: 'mdi:chart-bar' },
+  ];
+
+  const commonLinks = [
     { href: '/admin/settings', label: 'Settings', icon: 'mdi:cog' },
+  ];
+
+  const navigationLinks = [
+    ...(role === 'MANAGER' ? managerLinks : []),
+    ...(role === 'STAFF' ? staffLinks : []),
+    ...commonLinks,
   ];
 
   const notifications = [
