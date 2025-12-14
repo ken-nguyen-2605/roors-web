@@ -7,13 +7,29 @@ class ApiService {
   }
 
   async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
+    // Build URL with query params when provided
+    let url = `${this.baseURL}${endpoint}`;
+    if (options.params && typeof options.params === 'object') {
+      const searchParams = new URLSearchParams();
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, String(value));
+        }
+      });
+      const queryString = searchParams.toString();
+      if (queryString) {
+        url += (url.includes('?') ? '&' : '?') + queryString;
+      }
+    }
+
+    const { params, ...restOptions } = options; // omit params from fetch config
+
     const config = {
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...restOptions.headers,
       },
-      ...options,
+      ...restOptions,
     };
 
     // Add token to headers if it exists
