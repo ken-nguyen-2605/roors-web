@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { UserPlus, Edit2, Trash2, Shield, Eye, Search, X, Mail, Phone, Calendar, CheckCircle2, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { UserPlus, Edit2, Trash2, Shield, Eye, Search, X, Mail, Phone, Calendar, CheckCircle2, AlertCircle, ArrowUpRight, Loader2 } from 'lucide-react';
 import apiService from '@/services/api';
 
 interface User {
   id: number;
-  name: string;
+  name: string; // using username as name placeholder
   email: string;
   phone: string;
   role: 'Manager' | 'Staff' | 'Customer';
@@ -22,64 +22,10 @@ export default function UsersAndRolesSection() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isManager, setIsManager] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: 1,
-      name: 'Morgan Lee',
-      email: 'morgan.lee@restaurant.com',
-      phone: '+1-555-0301',
-      role: 'Manager',
-      status: 'Active',
-      joinedDate: new Date('2023-01-15'),
-      lastActive: new Date(),
-      permissions: ['all']
-    },
-    {
-      id: 2,
-      name: 'Sarah Johnson',
-      email: 'sarah.j@restaurant.com',
-      phone: '+1-555-0302',
-      role: 'Staff',
-      status: 'Active',
-      joinedDate: new Date('2023-03-20'),
-      lastActive: new Date(Date.now() - 2 * 3600000),
-      permissions: ['orders', 'reservations', 'menu', 'staff']
-    },
-    {
-      id: 3,
-      name: 'David Martinez',
-      email: 'david.m@restaurant.com',
-      phone: '+1-555-0303',
-      role: 'Staff',
-      status: 'Active',
-      joinedDate: new Date('2023-05-10'),
-      lastActive: new Date(Date.now() - 5 * 3600000),
-      permissions: ['orders', 'menu']
-    },
-    {
-      id: 4,
-      name: 'Emily Davis',
-      email: 'emily.d@restaurant.com',
-      phone: '+1-555-0304',
-      role: 'Customer',
-      status: 'Active',
-      joinedDate: new Date('2024-01-08'),
-      lastActive: new Date(Date.now() - 1 * 3600000),
-      permissions: ['orders', 'reservations']
-    },
-    {
-      id: 5,
-      name: 'James Wilson',
-      email: 'james.w@restaurant.com',
-      phone: '+1-555-0305',
-      role: 'Customer',
-      status: 'On Leave',
-      joinedDate: new Date('2024-02-12'),
-      lastActive: new Date(Date.now() - 3 * 86400000),
-      permissions: ['reservations']
-    }
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
 
   const roles = ['All', 'Manager', 'Staff', 'Customer'];
 
@@ -114,9 +60,13 @@ export default function UsersAndRolesSection() {
     }
   };
 
-  const handleDeleteUser = (id: number) => {
-    if (confirm('Are you sure you want to remove this user?')) {
+  const handleDeleteUser = async (id: number) => {
+    if (!confirm('Are you sure you want to remove this user?')) return;
+    try {
+      await apiService.delete(`/api/admin/users/${id}`);
       setUsers(users.filter(user => user.id !== id));
+    } catch (err: any) {
+      alert(err?.message || 'Failed to delete user');
     }
   };
 
@@ -140,6 +90,47 @@ export default function UsersAndRolesSection() {
     }
   }, []);
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await apiService.get('/api/admin/users');
+        const data = response || [];
+        const mapped = data.map((u: any) => ({
+          id: u.id,
+          name: u.username,
+          email: u.email,
+          phone: u.phone || '',
+          role: mapRole(u.role),
+          status: u.verified ? 'Active' : 'Inactive',
+          joinedDate: new Date(),
+          lastActive: new Date(),
+          permissions: u.role === 'Manager'
+            ? ['all']
+            : u.role === 'Staff'
+              ? ['orders', 'reservations', 'menu', 'customers']
+              : ['profile']
+        }));
+        setUsers(mapped);
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load users');
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (isManager) fetchUsers();
+  }, [isManager]);
+
+  const mapRole = (role: string): User['role'] => {
+    switch ((role || '').toUpperCase()) {
+      case 'MANAGER': return 'Manager';
+      case 'STAFF': return 'Staff';
+      default: return 'Customer';
+    }
+  };
+
   return (
     <section id="users" className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -153,7 +144,7 @@ export default function UsersAndRolesSection() {
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium shadow-lg hover:shadow-xl transition-all hover:scale-105"
           >
             <UserPlus className="w-5 h-5" />
-            Create Staff
+            Add Staff
           </button>
         )}
       </div>
@@ -189,98 +180,109 @@ export default function UsersAndRolesSection() {
 
       {/* Users Table */}
       <div className="rounded-2xl border-2 border-white/20 bg-white shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Last Active</th>
-                <th className="text-right px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold">
-                        {user.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900">{user.name}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(user.status)}`}>
-                      {user.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {getTimeSince(user.lastActive)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => setSelectedUser(user)}
-                        className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
-                        title="View Details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      {isManager && user.role !== 'Manager' && (
-                        <>
-                          {user.role !== 'Staff' && (
-                            <button
-                              onClick={async () => {
-                                try {
-                                  await apiService.post(`/api/admin/users/${user.id}/verify-staff`);
-                                  setUsers(users.map(u => u.id === user.id ? { ...u, role: 'Staff' } : u));
-                                } catch (err) {
-                                  console.error('Failed to promote to staff', err);
-                                  alert('Failed to promote to staff');
-                                }
-                              }}
-                              className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
-                              title="Make Staff"
-                            >
-                              <ArrowUpRight className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button
-                            className="p-2 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors"
-                            title="Edit"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                            title="Remove"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
+        {error && (
+          <div className="p-4 bg-red-50 text-red-700 border-b border-red-100">
+            {error}
+          </div>
+        )}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+            <span className="ml-3 text-gray-600">Loading users...</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">User</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Last Active</th>
+                  <th className="text-right px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredUsers.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <p>No users found</p>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold">
+                          {user.name.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-gray-900">{user.name}</div>
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(user.status)}`}>
+                        {user.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {getTimeSince(user.lastActive)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setSelectedUser(user)}
+                          className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {isManager && user.role !== 'Manager' && (
+                          <>
+                            {user.role !== 'Staff' && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await apiService.post(`/api/admin/users/${user.id}/verify-staff`);
+                                    setUsers(users.map(u => u.id === user.id ? { ...u, role: 'Staff' } : u));
+                                  } catch (err) {
+                                    console.error('Failed to promote to staff', err);
+                                    alert('Failed to promote to staff');
+                                  }
+                                }}
+                                className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
+                                title="Make Staff"
+                              >
+                                <ArrowUpRight className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              className="p-2 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors"
+                              title="Edit"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(user.id)}
+                              className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                              title="Remove"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-12 text-gray-500">
+                <p>No users found</p>
+              </div>
+            )}
           </div>
         )}
       </div>
