@@ -146,7 +146,7 @@ export default function EmailVerifiedPage() {
           </p>
 
           <div className="space-y-4 pt-4">
-            <Link href="/signin" className={`block ${styles.content.button}`}>
+            <Link href="/auth/login" className={`block ${styles.content.button}`}>
               Sign In to Your Account
             </Link>
 

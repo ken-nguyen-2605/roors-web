@@ -35,9 +35,14 @@ class AuthService {
       if (response.token) {
         apiService.setToken(response.token);
         
-        // Store user info if needed
+        // Store user info for role-gated UI
         if (typeof window !== 'undefined') {
-          localStorage.setItem('userInfo', JSON.stringify(response.userInfo || {}));
+          const info = {
+            username: response.username,
+            role: response.role,
+          };
+          console.log('[authService] storing userInfo:', info);
+          localStorage.setItem('userInfo', JSON.stringify(info));
           
           // Handle remember me
           if (rememberMe) {

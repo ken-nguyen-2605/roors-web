@@ -4,7 +4,10 @@ import AdminHeader from './AdminHeader';
 import Sidebar from './Sidebar';
 import DashboardSection from './DashboardSection';
 import { ReactNode, useState, useEffect } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Shield } from 'lucide-react';
+import { col } from 'framer-motion/client';
 
 type Props = {
   children?: ReactNode;
@@ -13,6 +16,7 @@ type Props = {
 export default function AdminWireframe({ children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [isManager, setIsManager] = useState(false);
   const pathname = usePathname();
 
   // Get page title based on current path
@@ -29,6 +33,25 @@ export default function AdminWireframe({ children }: Props) {
     const timer = setTimeout(() => setIsLoading(false), 300);
     return () => clearTimeout(timer);
   }, [pathname]);
+
+  useEffect(() => {
+    // Lightweight role flag from localStorage until backend user info is wired in
+    if (typeof window !== 'undefined') {
+      const raw = localStorage.getItem('userInfo');
+      console.log('Raw user info from localStorage:', raw);
+      try {
+        const parsed = raw ? JSON.parse(raw) : null;
+        console.log('Parsed user info for role check:', parsed?.role);
+        if (parsed?.role === 'MANAGER') {
+          setIsManager(true);
+        } else {
+          setIsManager(false);
+        }
+      } catch (e) {
+        setIsManager(false);
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-[500] relative">
@@ -76,6 +99,15 @@ export default function AdminWireframe({ children }: Props) {
                       {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                   </div>
+                  {isManager && (
+                    <Link
+                      href="/admin/users"
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
+                    >
+                      <Shield className="w-4 h-4" />
+                      Manage Users
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
