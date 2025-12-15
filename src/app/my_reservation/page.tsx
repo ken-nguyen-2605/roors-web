@@ -71,23 +71,32 @@ export default function ReservationHistory() {
       const response = await reservationService.getMyReservations();
       if (response.success && response.data) {
         // Transform data
-        const transformedReservations: Reservation[] = response.data.map((item: any) => ({
-          id: item.id,
-          reservationDate: item.startTime.split('T')[0], // e.g., "2025-11-15"
-          reservationTime: item.startTime.split('T')[1], // e.g., "12:00:00"
-          numberOfGuests: item.numberOfGuests,
-          status: item.status,
-          tableNumber: item.diningTable?.name,
-          specialRequests: item.specialRequests, // Add more mapping if needed
-          customerName: item.user?.username, // Or however you want to get customer info
-          customerPhone: item.phone,
-          customerEmail: item.user?.email, // Update based on actual data
-        }));
+        const transformedReservations: Reservation[] = response.data.map(
+          (item: any) => ({
+            id: item.id,
+            user: {
+              id: item.user?.id,
+              username: item.user?.username,
+            },
+            diningTable: {
+              id: item.diningTable?.id,
+              name: item.diningTable?.name,
+              floor: item.diningTable?.floor,
+              capacity: item.diningTable?.capacity,
+            },
+            status: item.status,
+            phone: item.phone,
+            numberOfGuests: item.numberOfGuests,
+            startTime: item.startTime,
+            endTime: item.endTime,
+            specialRequests: item.specialRequests,
+          })
+        );
 
-        // Sort transformed data by date+time (newest first)
+        // Sort transformed data by start time (newest first)
         const sortedReservations = transformedReservations.sort((a, b) => {
-          const dateA = new Date(`${a.reservationDate}T${a.reservationTime}`);
-          const dateB = new Date(`${b.reservationDate}T${b.reservationTime}`);
+          const dateA = new Date(a.startTime);
+          const dateB = new Date(b.startTime);
           return dateB.getTime() - dateA.getTime();
         });
 

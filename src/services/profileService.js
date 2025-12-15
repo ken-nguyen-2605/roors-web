@@ -34,15 +34,20 @@ class ProfileService {
   }
 
   getLikedDishes(userId) {
-    const endpoint = userId ? `/api/users/${userId}/liked-dishes` : '/api/users/me/liked-dishes';
-    return apiService.get(endpoint);
+    // Backend endpoint: GET /api/menu/likes (returns current authenticated user's liked items)
+    // Note: userId parameter is ignored - backend uses authenticated user from token
+    // For paginated results: GET /api/menu/likes/paged?page=0&size=20
+    return apiService.get('/api/menu/likes');
+  }
+
+  getLikedDishesPaged(page = 0, size = 20) {
+    return apiService.get(`/api/menu/likes/paged?page=${page}&size=${size}`);
   }
 
   removeLikedDish(dishId, userId) {
-    const endpoint = userId
-      ? `/api/users/${userId}/liked-dishes/${dishId}`
-      : `/api/users/me/liked-dishes/${dishId}`;
-    return apiService.delete(endpoint);
+    // Backend endpoint: DELETE /api/menu/likes/{menuItemId}
+    // Note: userId parameter is ignored - backend uses authenticated user from token
+    return apiService.delete(`/api/menu/likes/${dishId}`);
   }
 }
 

@@ -152,7 +152,8 @@ const mapLikedDishesResponse = (items: any[]): LikedDish[] => {
     price: Number(item?.price ?? 0),
     image: item?.imageUrl ?? item?.image ?? fallbackLikedDishes[index % fallbackLikedDishes.length].image,
     category: item?.category?.name ?? item?.category ?? 'Chef Special',
-    likedDate: formatLikedDate(item?.likedDate ?? item?.likedAt),
+    // Note: Backend doesn't return likedDate in MenuItemResponse, so we use createdAt or show "Recently"
+    likedDate: formatLikedDate(item?.createdAt ?? item?.likedDate ?? item?.likedAt),
   }));
 };
 
@@ -212,12 +213,13 @@ export default function ProfilePage() {
     const fetchLikedDishes = async (id: number) => {
       setLoadingLiked(true);
       try {
+        // Backend returns List<MenuItemResponse> directly, not wrapped in content
         const response = await profileService.getLikedDishes(id);
         if (!isMounted) return;
         const payload = unwrapResponse(response);
-        const normalized = mapLikedDishesResponse(
-          Array.isArray(payload?.content) ? payload.content : Array.isArray(payload) ? payload : []
-        );
+        // Backend returns array directly or wrapped in data
+        const items = Array.isArray(payload) ? payload : Array.isArray(payload?.content) ? payload.content : [];
+        const normalized = mapLikedDishesResponse(items);
         setLikedDishesList(normalized);
       } catch (error) {
         console.error('Failed to load liked dishes:', error);
@@ -595,7 +597,7 @@ export default function ProfilePage() {
 
                           {/* Action Buttons */}
                           <div className="flex gap-2">
-                            <Link href={`/dish/${dish.id}`} className="flex-1">
+                            <Link href={`/menu/${dish.id}`} className="flex-1">
                               <button className="w-full py-2 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-colors duration-300 font-semibold text-sm">
                                 View Details
                               </button>

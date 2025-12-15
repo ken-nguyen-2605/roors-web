@@ -337,7 +337,7 @@ export default function ReservationsSection() {
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-bold text-gray-900 truncate">{reservation.customerName}</h4>
+                      <h4 className="font-bold text-gray-900 truncate">{reservation.id}</h4>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(reservation.status)}`}>
                         {getStatusLabel(reservation.status)}
                       </span>
@@ -435,7 +435,7 @@ export default function ReservationsSection() {
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="font-semibold text-sm text-gray-900 truncate pr-2">
-                      {reservation.customerName}
+                      {reservation.id}
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${getStatusColor(reservation.status)}`}>
                       {getStatusLabel(reservation.status)}

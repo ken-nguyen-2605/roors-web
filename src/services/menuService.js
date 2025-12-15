@@ -340,8 +340,8 @@ export const getFilteredMenuItems = async (filters = {}) => {
       const searchResponse = await searchMenuItems(keyword,  {page: 0}, {size: 100} );
       items = searchResponse.content || [];
     } else {
-      // Get all items
-      const allResponse = await getAllMenuItems({ page: 0, size: 9, sortBy, sortDir });
+      // Get all items - fetch a large number to support pagination
+      const allResponse = await getAllMenuItems({ page: 0, size: 500, sortBy, sortDir });
       items = allResponse.content || [];
     }
 
@@ -449,6 +449,60 @@ export const getRatingStars = (rating) => {
 };
 
 /**
+ * Like a menu item
+ * Endpoint: POST /api/menu/likes/{menuItemId}
+ */
+export const likeMenuItem = async (menuItemId) => {
+  try {
+    // POST endpoint doesn't require a body, but apiService.post expects data
+    // Sending empty object is fine
+    const response = await apiService.post(`/api/menu/likes/${menuItemId}`, {});
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Unlike a menu item
+ * Endpoint: DELETE /api/menu/likes/{menuItemId}
+ */
+export const unlikeMenuItem = async (menuItemId) => {
+  try {
+    const response = await apiService.delete(`/api/menu/likes/${menuItemId}`);
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Get like status for a menu item
+ * Endpoint: GET /api/menu/likes/{menuItemId}/status
+ */
+export const getMenuItemLikeStatus = async (menuItemId) => {
+  try {
+    const response = await apiService.get(`/api/menu/likes/${menuItemId}/status`);
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Get dish ratings for a menu item
+ * Endpoint: GET /api/menu/{id}/ratings
+ */
+export const getDishRatings = async (menuItemId, limit = 5) => {
+  try {
+    const response = await apiService.get(`/api/menu/${menuItemId}/ratings?limit=${limit}`);
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
  * Handle API errors consistently
  */
 export const handleApiError = (error) => {
@@ -494,6 +548,14 @@ const menuService = {
   toggleMenuItemAvailability,
   deleteMenuItem,
   getFilteredMenuItems, // Combined filter
+
+  // Menu Item Likes
+  likeMenuItem,
+  unlikeMenuItem,
+  getMenuItemLikeStatus,
+
+  // Dish Ratings
+  getDishRatings,
 
   // Utilities
   formatPrice,

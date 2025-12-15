@@ -7,6 +7,7 @@ import orderService from '@/services/orderService';
 interface OrderFeedback {
   id: number;
   orderNumber: string;
+  orderDate: string;
   customerName: string;
   rating: number;
   feedback: string;
@@ -19,6 +20,7 @@ interface DishFeedback {
   id: number;
   orderId: number;
   orderNumber: string;
+  orderDate: string;
   customerName: string;
   dishName: string;
   dishRating: number;
@@ -27,6 +29,20 @@ interface DishFeedback {
   adminDishResponse?: string;
   dishRespondedAt?: string;
 }
+
+// Format a LocalDateTime string (e.g., 2024-05-01T14:30:00) as a readable date
+const formatOrderDate = (dateString: string) => {
+  if (!dateString) return 'Unknown';
+  const [datePart, timePart] = dateString.split(/[T ]/);
+  const normalized = timePart ? `${datePart}T${timePart}` : datePart;
+  const date = new Date(normalized);
+  if (isNaN(date.getTime())) return 'Unknown';
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
 
 export default function CustomersAndFeedbackSection() {
   const [selectedFeedback, setSelectedFeedback] = useState<OrderFeedback | null>(null);
@@ -54,6 +70,7 @@ export default function CustomersAndFeedbackSection() {
           .map((order: any) => ({
             id: order.id,
             orderNumber: order.orderNumber,
+            orderDate: order.createdAt,
             customerName: order.customerName,
             rating: order.rating,
             feedback: order.feedback || '',
@@ -70,6 +87,7 @@ export default function CustomersAndFeedbackSection() {
               dishes.push({
                 id: item.id,
                 orderId: order.id,
+                orderDate: order.createdAt,
                 orderNumber: order.orderNumber,
                 customerName: order.customerName,
                 dishName: item.menuItemName,
@@ -185,7 +203,7 @@ export default function CustomersAndFeedbackSection() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold text-gray-900">{item.customerName}</span>
                         <span className="text-xs text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded">
-                          {item.orderNumber}
+                          {item.orderNumber} • {formatOrderDate(item.orderDate)}
                         </span>
                       </div>
                       <div className="flex items-center gap-1 mb-2">
@@ -242,7 +260,7 @@ export default function CustomersAndFeedbackSection() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold text-gray-900">{item.customerName}</span>
                         <span className="text-xs text-orange-600 font-medium bg-orange-50 px-2 py-0.5 rounded">
-                          {item.orderNumber}
+                          {item.orderNumber} • {formatOrderDate(item.orderDate)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between mb-2">
@@ -353,7 +371,9 @@ function FeedbackDetailModal({
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="font-bold text-lg text-gray-900">{feedback.customerName}</div>
-                <div className="text-sm text-orange-600 font-medium">Order {feedback.orderNumber}</div>
+                <div className="text-sm text-orange-600 font-medium">
+                  Order {feedback.orderNumber} • {formatOrderDate(feedback.orderDate)}
+                </div>
               </div>
               <div className="text-sm text-gray-500">
                 {new Date(feedback.ratedAt).toLocaleDateString('en-US', { 
@@ -455,7 +475,9 @@ function DishFeedbackDetailModal({
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="font-bold text-lg text-gray-900">{feedback.customerName}</div>
-                <div className="text-sm text-orange-600 font-medium">Order {feedback.orderNumber}</div>
+                <div className="text-sm text-orange-600 font-medium">
+                  Order {feedback.orderNumber} • {formatOrderDate(feedback.orderDate)}
+                </div>
               </div>
               <div className="text-sm text-gray-500">
                 {new Date(feedback.dishRatedAt).toLocaleDateString('en-US', { 

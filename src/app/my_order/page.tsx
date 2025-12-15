@@ -367,27 +367,53 @@ export default function OrderHistory() {
     }
 
     try {
-      // Submit each dish rating
-      const promises = finalList.map((item, index) => {
-        const orderItem = reviewModal.order!.items[index];
+      // Submit each dish rating - match by name since we only send rated items
+      const promises = finalList.map((item) => {
+        // Find the matching order item by name
+        const orderItem = reviewModal.order!.items.find(
+          (oi) => oi.name === item.name
+        );
+        
+        if (!orderItem) {
+          console.warn("Order item not found for:", item.name);
+          return Promise.resolve({ success: false, message: `Item ${item.name} not found in order` });
+        }
+        
         if (item.stars > 0) {
+          console.log("Submitting rating:", {
+            orderId: reviewModal.order!.id,
+            itemId: orderItem.id,
+            itemName: item.name,
+            rating: item.stars,
+            feedback: item.feedback || ""
+          });
           return orderService.submitDishRating(
             String(reviewModal.order!.id),
             String(orderItem.id),
             item.stars,
-            item.review || ""
+            item.feedback || ""
           );
         }
         return Promise.resolve({ success: true });
       });
 
       const results = await Promise.all(promises);
-      const failed = results.filter((r) => !r.success);
+      console.log("Rating submission results:", results);
+      const failed = results.filter((r) => !r?.success);
 
       if (failed.length > 0) {
-        alert("Some ratings failed to submit. Please try again.");
+        console.error("Failed ratings:", failed);
+        const errorMessages = failed.map(f => (f as any).message || 'Unknown error').join(', ');
+        alert(`Some ratings failed to submit: ${errorMessages}`);
       } else {
-        alert("Thank you for your detailed feedback!");
+        const ratedCount = finalList.filter(item => item.stars > 0).length;
+        const totalCount = reviewModal.order!.items.length;
+        
+        if (ratedCount === totalCount) {
+          alert("Thank you for your detailed feedback on all items!");
+        } else {
+          alert(`Thank you! Your feedback for ${ratedCount} item${ratedCount > 1 ? 's' : ''} has been saved.`);
+        }
         
         // Reload orders to get updated ratings
         const res = await orderService.getMyOrders({ page: 0, size: 50 });
@@ -396,7 +422,8 @@ export default function OrderHistory() {
         }
       }
     } catch (error) {
-      alert("An error occurred while submitting ratings");
+      console.error("Error submitting ratings:", error);
+      alert("An error occurred while submitting ratings: " + (error instanceof Error ? error.message : String(error)));
     }
 
     setReviewModal({ isOpen: false, order: null });

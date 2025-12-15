@@ -1,61 +1,202 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { TrendingUp, DollarSign, ShoppingBag, Users, Calendar, Download, Filter, Clock } from 'lucide-react';
+import adminStatisticsService from '@/services/adminStatisticsService';
+
+// Match backend DTOs from com.josephken.roors.admin.dto
+type OrderStatsByDateDto = {
+  date: string; // LocalDate serialized as ISO string
+  orderCount: number;
+  revenue: number;
+};
+
+type TopSellingItemDto = {
+  menuItemId: number;
+  name: string;
+  totalQuantity: number;
+  totalRevenue: number;
+};
+
+type DashboardStatsDto = {
+  totalOrders: number;
+  totalRevenue: number;
+  totalMenuItems: number;
+  totalUsers: number;
+  revenueOverTime: OrderStatsByDateDto[];
+  topSellingItems: TopSellingItemDto[];
+  orderStatusDistribution: Record<string, number>;
+  categorySales: {
+    categoryName: string;
+    orderCount: number;
+    revenue: number;
+  }[];
+};
 
 export default function ReportsSection() {
   const [dateRange, setDateRange] = useState('last7days');
   const [reportType, setReportType] = useState('overview');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [ordersCount, setOrdersCount] = useState(0);
+  const [salesData, setSalesData] = useState<
+    { day: string; sales: number; orders: number }[]
+  >([]);
 
-  // Sample data for charts
-  const salesData = [
-    { day: 'Mon', sales: 1250, orders: 45 },
-    { day: 'Tue', sales: 1580, orders: 52 },
-    { day: 'Wed', sales: 1920, orders: 63 },
-    { day: 'Thu', sales: 1650, orders: 55 },
-    { day: 'Fri', sales: 2340, orders: 78 },
-    { day: 'Sat', sales: 3150, orders: 95 },
-    { day: 'Sun', sales: 2890, orders: 89 }
-  ];
+  const [topItems, setTopItems] = useState<
+    { name: string; orders: number; revenue: number }[]
+  >([]);
 
-  const topItems = [
-    { name: 'Classic Burger', orders: 156, revenue: 2025.44 },
-    { name: 'Margherita Pizza', orders: 142, revenue: 2128.58 },
-    { name: 'Grilled Salmon', orders: 98, revenue: 1860.02 },
-    { name: 'Caesar Salad', orders: 87, revenue: 739.50 },
-    { name: 'French Fries', orders: 203, revenue: 913.50 }
-  ];
+  const [categoryBreakdown, setCategoryBreakdown] = useState<
+    { category: string; percentage: number; revenue: number }[]
+  >([]);
 
-  const categoryBreakdown = [
-    { category: 'Main Course', percentage: 45, revenue: 6840.50 },
-    { category: 'Appetizers', percentage: 20, revenue: 3040.00 },
-    { category: 'Desserts', percentage: 15, revenue: 2280.00 },
-    { category: 'Beverages', percentage: 12, revenue: 1824.00 },
-    { category: 'Sides', percentage: 8, revenue: 1216.00 }
-  ];
+  const [peakHoursData, setPeakHoursData] = useState<
+    { hour: string; count: number }[]
+  >([]);
 
-  const peakHoursData = [
-    { hour: '10 AM', count: 12 },
-    { hour: '11 AM', count: 25 },
-    { hour: '12 PM', count: 45 },
-    { hour: '1 PM', count: 38 },
-    { hour: '2 PM', count: 20 },
-    { hour: '3 PM', count: 15 },
-    { hour: '4 PM', count: 18 },
-    { hour: '5 PM', count: 30 },
-    { hour: '6 PM', count: 55 },
-    { hour: '7 PM', count: 62 },
-    { hour: '8 PM', count: 48 },
-    { hour: '9 PM', count: 25 },
-  ];
-  
-  const maxPeak = Math.max(...peakHoursData.map(d => d.count));
+  // Map your UI dateRange keys to backend "days" parameter.
+  const daysForRange = useMemo(() => {
+    switch (dateRange) {
+      case 'today':
+        return 1;
+      case 'last7days':
+        return 7;
+      case 'last30days':
+        return 30;
+      case 'thismonth':
+        return 30;
+      case 'lastmonth':
+        return 60;
+      default:
+        return 30;
+    }
+  }, [dateRange]);
 
-  const totalSales = salesData.reduce((sum, d) => sum + d.sales, 0);
-  const totalOrders = salesData.reduce((sum, d) => sum + d.orders, 0);
-  const avgOrderValue = totalSales / totalOrders;
+  useEffect(() => {
+    if (reportType !== 'overview') return;
 
-  const maxSales = Math.max(...salesData.map(d => d.sales));
+    const fetchStats = async () => {
+      setLoading(true);
+      setError(null);
+
+      const result = await adminStatisticsService.getDashboardStatistics(
+        daysForRange,
+      );
+
+      if (!result.success) {
+        setError(result.message || 'Failed to load statistics');
+        setLoading(false);
+        return;
+      }
+
+      const stats = result.data as DashboardStatsDto;
+
+      // Top-level aggregates from backend
+      setTotalRevenue(Number(stats.totalRevenue ?? 0));
+      setOrdersCount(Number(stats.totalOrders ?? 0));
+
+      // revenueOverTime: List<OrderStatsByDate> from backend
+      const revenueOverTime = stats.revenueOverTime || [];
+      const transformedSales = revenueOverTime.map((entry) => ({
+        day: entry.date,
+        sales: Number(entry.revenue ?? 0),
+        orders: Number(entry.orderCount ?? 0),
+      }));
+
+      setSalesData(transformedSales);
+
+      // topSellingItems: List<TopSellingItem>
+      const topSellingItems = stats.topSellingItems || [];
+      setTopItems(
+        topSellingItems.map((item) => ({
+          name: item.name,
+          orders: Number(item.totalQuantity ?? 0),
+          revenue: Number(item.totalRevenue ?? 0),
+        })),
+      );
+
+      // Category sales from backend (real category + revenue).
+      // If backend doesn't send it yet or it's empty, fall back to status distribution
+      const categorySales = stats.categorySales || [];
+
+      if (categorySales.length > 0) {
+        const totalCategoryRevenue = categorySales.reduce(
+          (sum, c) => sum + Number(c.revenue ?? 0),
+          0,
+        );
+
+        const categoryData = categorySales.map((c) => {
+          const revenue = Number(c.revenue ?? 0);
+          const percentage =
+            totalCategoryRevenue === 0
+              ? 0
+              : Math.round((revenue / totalCategoryRevenue) * 100);
+
+          return {
+            category: c.categoryName,
+            percentage,
+            revenue,
+          };
+        });
+
+        setCategoryBreakdown(categoryData);
+      } else {
+        // Fallback: derive categories from orderStatusDistribution (older BE or no data)
+        const statusDistribution = stats.orderStatusDistribution || {};
+        const totalStatusCount = Object.values(statusDistribution).reduce(
+          (sum: number, v) => sum + Number(v),
+          0,
+        );
+
+        const categoryData = Object.entries(statusDistribution).map(
+          ([status, count]) => {
+            const percentage =
+              totalStatusCount === 0
+                ? 0
+                : Math.round((Number(count) / totalStatusCount) * 100);
+
+            const revenueShare = (totalRevenue * percentage) / 100;
+
+            return {
+              category: status,
+              percentage,
+              revenue: revenueShare,
+            };
+          },
+        );
+
+        setCategoryBreakdown(categoryData);
+      }
+
+      // Peak hours are not directly provided; derive simple pseudo data from revenueOverTime
+      const peakData =
+        revenueOverTime.length > 0
+          ? revenueOverTime.map((entry) => ({
+              hour: entry.date,
+              count: Number(entry.orderCount ?? 0),
+            }))
+          : [];
+
+      setPeakHoursData(peakData);
+
+      setLoading(false);
+    };
+
+    fetchStats();
+  }, [daysForRange, reportType]);
+
+  const maxPeak = peakHoursData.length
+    ? Math.max(...peakHoursData.map((d) => d.count))
+    : 0;
+
+  const avgOrderValue =
+    ordersCount > 0 ? totalRevenue / ordersCount : 0;
+
+  const maxSales = salesData.length
+    ? Math.max(...salesData.map((d) => d.sales))
+    : 0;
 
   return (
     <section id="reports" className="space-y-6">
@@ -83,13 +224,25 @@ export default function ReportsSection() {
         </div>
       </div>
 
+      {loading && (
+        <div className="rounded-2xl border-2 border-white/20 bg-white/80 shadow-xl p-4 text-sm text-gray-700">
+          Loading latest statistics...
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-2xl border-2 border-red-200 bg-red-50 shadow-xl p-4 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="rounded-2xl border-2 border-white/20 bg-white shadow-xl p-6">
           <div className="flex items-start justify-between">
             <div>
               <div className="text-xs text-gray-600 font-medium uppercase tracking-wide">Total Revenue</div>
-              <div className="text-3xl font-bold text-gray-900 mt-2">${totalSales.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-gray-900 mt-2">${totalRevenue.toFixed(2)}</div>
               <div className="flex items-center gap-1 mt-2 text-sm font-medium text-green-600">
                 <TrendingUp className="w-4 h-4" />
                 <span>+12.5% vs last period</span>
@@ -105,7 +258,7 @@ export default function ReportsSection() {
           <div className="flex items-start justify-between">
             <div>
               <div className="text-xs text-gray-600 font-medium uppercase tracking-wide">Total Orders</div>
-              <div className="text-3xl font-bold text-gray-900 mt-2">{totalOrders}</div>
+              <div className="text-3xl font-bold text-gray-900 mt-2">{ordersCount}</div>
               <div className="flex items-center gap-1 mt-2 text-sm font-medium text-blue-600">
                 <TrendingUp className="w-4 h-4" />
                 <span>+8.3% vs last period</span>
@@ -133,21 +286,6 @@ export default function ReportsSection() {
           </div>
         </div>
 
-        <div className="rounded-2xl border-2 border-white/20 bg-white shadow-xl p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="text-xs text-gray-600 font-medium uppercase tracking-wide">New Customers</div>
-              <div className="text-3xl font-bold text-gray-900 mt-2">47</div>
-              <div className="flex items-center gap-1 mt-2 text-sm font-medium text-orange-600">
-                <TrendingUp className="w-4 h-4" />
-                <span>+18.2% vs last period</span>
-              </div>
-            </div>
-            <div className="rounded-xl bg-gradient-to-br from-orange-500 to-red-500 p-3 text-white shadow-lg">
-              <Users className="w-6 h-6" />
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Charts Section */}
@@ -211,8 +349,8 @@ export default function ReportsSection() {
       {/* Top Selling Items */}
       <div className="rounded-2xl border-2 border-white/20 bg-white shadow-xl p-6">
         <h3 className="text-lg font-bold mb-6">Top Selling Items</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-x-auto max-h-80">
+          <table className="w-full table-fixed">
             <thead>
               <tr className="border-b-2 border-gray-100">
                 <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Rank</th>
@@ -222,23 +360,34 @@ export default function ReportsSection() {
                 <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase">Trend</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100">
               {topItems.map((item, idx) => (
-                <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-4">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                      idx === 0 ? 'bg-yellow-100 text-yellow-700' :
-                      idx === 1 ? 'bg-gray-100 text-gray-700' :
-                      idx === 2 ? 'bg-orange-100 text-orange-700' :
-                      'bg-gray-50 text-gray-600'
-                    }`}>
+                <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-3 px-4">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                        idx === 0
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : idx === 1
+                          ? 'bg-gray-100 text-gray-700'
+                          : idx === 2
+                          ? 'bg-orange-100 text-orange-700'
+                          : 'bg-gray-50 text-gray-600'
+                      }`}
+                    >
                       {idx + 1}
                     </div>
                   </td>
-                  <td className="py-4 px-4 font-medium text-gray-900">{item.name}</td>
-                  <td className="py-4 px-4 text-right font-semibold">{item.orders}</td>
-                  <td className="py-4 px-4 text-right font-bold text-green-600">${item.revenue.toFixed(2)}</td>
-                  <td className="py-4 px-4 text-right">
+                  <td className="py-3 px-4 font-medium text-gray-900 truncate">
+                    {item.name}
+                  </td>
+                  <td className="py-3 px-4 text-right font-semibold">
+                    {item.orders}
+                  </td>
+                  <td className="py-3 px-4 text-right font-bold text-green-600 whitespace-nowrap">
+                    ${item.revenue.toFixed(2)}
+                  </td>
+                  <td className="py-3 px-4 text-right">
                     <span className="inline-flex items-center gap-1 text-sm font-medium text-green-600">
                       <TrendingUp className="w-4 h-4" />
                       {Math.floor(Math.random() * 20 + 5)}%
@@ -264,27 +413,32 @@ export default function ReportsSection() {
         </div>
         
         <div className="h-64 flex items-end gap-2 sm:gap-4">
-          {peakHoursData.map((data, idx) => (
-            <div key={idx} className="flex-1 flex flex-col items-center gap-2 group">
-              <div className="relative w-full flex items-end justify-center h-full">
-                <div 
-                  className="w-full bg-orange-100 rounded-t-lg group-hover:bg-orange-200 transition-colors relative"
-                  style={{ height: `${(data.count / maxPeak) * 100}%` }}
-                >
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                    {data.count} reservations
+          {peakHoursData.map((data, idx) => {
+            const rawHeight = maxPeak ? (data.count / maxPeak) * 100 : 0;
+            const barHeight = data.count > 0 ? Math.max(rawHeight, 8) : 0; // ensure visible bar
+
+            return (
+              <div key={idx} className="flex-1 flex flex-col items-center gap-2 group">
+                <div className="relative w-full flex items-end justify-center h-full">
+                  <div
+                    className="w-full bg-orange-50 rounded-t-lg group-hover:bg-orange-100 transition-colors relative border border-orange-100"
+                    style={{ height: `${barHeight}%` }}
+                  >
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-md">
+                      {data.count} reservations
+                    </div>
                   </div>
+                  <div
+                    className="absolute bottom-0 w-full bg-gradient-to-t from-orange-500 to-red-500 rounded-t-lg opacity-90 group-hover:opacity-100 transition-opacity shadow-md"
+                    style={{ height: `${barHeight}%` }}
+                  />
                 </div>
-                <div 
-                  className="absolute bottom-0 w-full bg-gradient-to-t from-orange-500 to-red-500 rounded-t-lg opacity-80 group-hover:opacity-100 transition-opacity"
-                  style={{ height: `${(data.count / maxPeak) * 100}%` }}
-                />
+                <span className="text-xs font-medium text-gray-600 -rotate-45 sm:rotate-0 origin-top sm:origin-center mt-2 sm:mt-0 whitespace-nowrap">
+                  {data.hour}
+                </span>
               </div>
-              <span className="text-xs font-medium text-gray-600 -rotate-45 sm:rotate-0 origin-top sm:origin-center mt-2 sm:mt-0 whitespace-nowrap">
-                {data.hour}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

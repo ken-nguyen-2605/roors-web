@@ -13,6 +13,7 @@ import { FaMagnifyingGlass } from "react-icons/fa6";
 
 import { useNoteStore } from "@/stores/useNoteStore";
 import menuService from "@/services/menuService";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { Inria_Serif } from 'next/font/google';
 const inriaSerif = Inria_Serif({
@@ -43,6 +44,17 @@ export default function Menu() {
     const [menuItems, setMenuItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [likedItems, setLikedItems] = useState<Set<number>>(new Set());
+    const [likingItems, setLikingItems] = useState<Set<number>>(new Set());
+    
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(0);
+    const [itemsPerPage] = useState(9); // Items per page
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+
+    // Auth
+    const { isAuthenticated } = useAuth();
 
     // Note Store
     const quantities = useNoteStore(s => s.quantities);
@@ -68,10 +80,23 @@ export default function Menu() {
         loadCategories();
     }, []);
 
-    // Load menu items when filters change
+    // Load menu items when filters change - reset to page 0
     useEffect(() => {
-        loadMenuItems();
+        setCurrentPage(0);
+        loadMenuItems(0);
     }, [selectedCategoryId, keyword, minPrice, maxPrice, rating]);
+    
+    // Load menu items when page changes
+    useEffect(() => {
+        loadMenuItems(currentPage);
+    }, [currentPage]);
+
+    // Load like status for menu items when they change and user is authenticated
+    useEffect(() => {
+        if (isAuthenticated && menuItems.length > 0) {
+            loadLikeStatuses();
+        }
+    }, [menuItems, isAuthenticated]);
 
     const loadCategories = async () => {
         try {
@@ -83,18 +108,19 @@ export default function Menu() {
         }
     };
 
-    const loadMenuItems = async () => {
+    const loadMenuItems = async (page: number = currentPage) => {
         try {
             setLoading(true);
             setError(null);
 
             const filters: any = {
+                categoryId: selectedCategoryId,
                 keyword: keyword.trim(),
                 minPrice: minPrice ? parseFloat(minPrice) : null,
                 maxPrice: maxPrice ? parseFloat(maxPrice) : null,
                 minRating: rating ? parseInt(rating) : 0,
-                page: 0,
-                size: 500,
+                page: page,
+                size: itemsPerPage,
             };
 
             if (selectedCategoryId !== null) {
@@ -106,8 +132,12 @@ export default function Menu() {
             // Safely check response
             if (response && response.content) {
                 setMenuItems(response.content);
+                setTotalPages(response.totalPages || 0);
+                setTotalElements(response.totalElements || 0);
             } else {
                 setMenuItems([]);
+                setTotalPages(0);
+                setTotalElements(0);
             }
 
  
@@ -115,8 +145,73 @@ export default function Menu() {
             console.error('Error loading menu items:', err);
             setError('Failed to load menu items');
             setMenuItems([]);
+            setTotalPages(0);
+            setTotalElements(0);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadLikeStatuses = async () => {
+        if (!isAuthenticated) return;
+
+        try {
+            const likeStatusPromises = menuItems.map(async (item) => {
+                try {
+                    const status = await menuService.getMenuItemLikeStatus(item.id);
+                    return { id: item.id, isLiked: status.isLiked || false };
+                } catch (err) {
+                    console.error(`Error loading like status for item ${item.id}:`, err);
+                    return { id: item.id, isLiked: false };
+                }
+            });
+
+            const statuses = await Promise.all(likeStatusPromises);
+            const newLikedItems = new Set<number>();
+            statuses.forEach(({ id, isLiked }) => {
+                if (isLiked) {
+                    newLikedItems.add(id);
+                }
+            });
+            setLikedItems(newLikedItems);
+        } catch (err) {
+            console.error('Error loading like statuses:', err);
+        }
+    };
+
+    const handleLikeToggle = async (menuItemId: number, shouldLike: boolean) => {
+        if (!isAuthenticated) {
+            // Optionally redirect to login or show a message
+            return;
+        }
+
+        // Optimistic update
+        const newLikedItems = new Set(likedItems);
+        if (shouldLike) {
+            newLikedItems.add(menuItemId);
+        } else {
+            newLikedItems.delete(menuItemId);
+        }
+        setLikedItems(newLikedItems);
+        setLikingItems(prev => new Set(prev).add(menuItemId));
+
+        try {
+            if (shouldLike) {
+                await menuService.likeMenuItem(menuItemId);
+            } else {
+                await menuService.unlikeMenuItem(menuItemId);
+            }
+        } catch (err: any) {
+            console.error('Error toggling like:', err);
+            // Revert optimistic update on error
+            setLikedItems(likedItems);
+            // Optionally show an error message to the user
+        } finally {
+            setLikingItems(prev => {
+                const next = new Set(prev);
+                next.delete(menuItemId);
+                return next;
+            });
         }
     };
 
@@ -243,14 +338,16 @@ export default function Menu() {
                                 <div key={dish.id}>
                                     <DishCard
                                         id={dish.id}
-                                        names={dish.name}
-                                        images={dish.imageUrl}
-                                        descriptions={dish.description}
+                                        name={dish.name}
+                                        image={dish.imageUrl}
+                                        description={dish.description}
                                         price={dish.price}
                                         categories={dish.category ? [dish.category.name] : []}
                                         rating={dish.rating}
                                         quantity={quantities[dish.id] ?? 0}
                                         onQuantityChange={handleQuantityChange}
+                                        isLiked={likedItems.has(dish.id)}
+                                        onLikeToggle={isAuthenticated ? handleLikeToggle : undefined}
                                     />
                                     {i === 6 && (
                                         <div
@@ -264,6 +361,68 @@ export default function Menu() {
                                     )}
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {/* Pagination Controls */}
+                    {!loading && !error && menuItems.length > 0 && totalPages > 1 && (
+                        <div className="flex items-center justify-center gap-4 mt-12 mb-8">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
+                                disabled={currentPage === 0}
+                                className={`px-4 py-2 border-2 border-black rounded-lg transition duration-200 ${
+                                    currentPage === 0
+                                        ? "opacity-50 cursor-not-allowed bg-gray-200"
+                                        : "bg-white hover:bg-black hover:text-white cursor-pointer"
+                                }`}
+                            >
+                                Previous
+                            </button>
+                            
+                            <div className="flex items-center gap-2">
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    let pageNum;
+                                    if (totalPages <= 5) {
+                                        pageNum = i;
+                                    } else if (currentPage < 3) {
+                                        pageNum = i;
+                                    } else if (currentPage > totalPages - 4) {
+                                        pageNum = totalPages - 5 + i;
+                                    } else {
+                                        pageNum = currentPage - 2 + i;
+                                    }
+                                    
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setCurrentPage(pageNum)}
+                                            className={`w-10 h-10 border-2 border-black rounded-lg transition duration-200 ${
+                                                currentPage === pageNum
+                                                    ? "bg-black text-white"
+                                                    : "bg-white hover:bg-black hover:text-white"
+                                            }`}
+                                        >
+                                            {pageNum + 1}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
+                                disabled={currentPage >= totalPages - 1}
+                                className={`px-4 py-2 border-2 border-black rounded-lg transition duration-200 ${
+                                    currentPage >= totalPages - 1
+                                        ? "opacity-50 cursor-not-allowed bg-gray-200"
+                                        : "bg-white hover:bg-black hover:text-white cursor-pointer"
+                                }`}
+                            >
+                                Next
+                            </button>
+                            
+                            <span className="text-gray-600 ml-4">
+                                Page {currentPage + 1} of {totalPages} ({totalElements} items)
+                            </span>
                         </div>
                     )}
                 </section>
