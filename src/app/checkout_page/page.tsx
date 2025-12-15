@@ -21,6 +21,16 @@ import apiService from '@/services/api';
 import orderService from '@/services/orderService';
 import { useNoteStore } from "@/stores/useNoteStore";
 
+// QR Code generation - you can use a library like 'qrcode.react' or generate via API
+// npm install qrcode.react
+// import QRCode from 'qrcode.react';
+
+interface OrderData {
+    orderId: string;
+    orderCode: string;
+    total: number;
+}
+
 export default function Checkout() {
     const [formData, setFormData] = useState({
         fullName: '',
@@ -40,6 +50,10 @@ export default function Checkout() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    
+    // NEW: Store pending order data for QR payment
+    const [pendingOrderData, setPendingOrderData] = useState<OrderData | null>(null);
+    const [paymentStatus, setPaymentStatus] = useState<'pending' | 'checking' | 'confirmed' | 'failed'>('pending');
 
     // Get quantities and reset function from Zustand store
     const { quantities, reset } = useNoteStore();
@@ -58,7 +72,6 @@ export default function Checkout() {
 
             console.log("Quantities from store:", quantities);
 
-            // Check if quantities object is empty
             const menuItemIds = Object.keys(quantities);
             if (menuItemIds.length === 0) {
                 setCartItems([]);
@@ -66,7 +79,6 @@ export default function Checkout() {
                 return;
             }
 
-            // Fetch menu item details for each item in cart
             const itemsWithDetails = await Promise.all(
                 menuItemIds.map(async (menuItemId) => {
                     try {
@@ -92,7 +104,6 @@ export default function Checkout() {
                 })
             );
 
-            // Filter out any failed requests
             const validItems = itemsWithDetails.filter(item => item !== null);
             console.log("Valid cart items:", validItems);
             setCartItems(validItems);
@@ -138,7 +149,7 @@ export default function Checkout() {
         return true;
     };
 
-    const createOrderPayload = () => {
+    const createOrderPayload = (status: string = 'PENDING') => {
         return {
             customerName: formData.fullName,
             customerPhone: formData.phone,
@@ -147,12 +158,27 @@ export default function Checkout() {
             notes: formData.notes || null,
             orderType: 'DELIVERY',
             paymentMethod: paymentMethod === 'cash' ? 'CASH' : 'BANK_TRANSFER',
+            paymentStatus: status, // Add payment status
             items: cartItems.map(item => ({
                 menuItemId: item.menuItemId,
                 quantity: item.quantity,
-                notes: null // No item-specific notes in this version
+                notes: null
             }))
         };
+    };
+
+    // Generate VietQR URL for Vietnamese banks
+    const generateVietQRUrl = (orderCode: string, amount: number) => {
+        // Replace with your actual bank details
+        const bankId = 'MB'; // Bank code (MB, VCB, TCB, etc.)
+        const accountNo = '0909630904'; // Your bank account number
+        const accountName = 'NGUYEN PHUC DIEN'; // Your account name
+        const template = 'compact2'; // QR template
+        
+        // VietQR API URL
+        const vietQRUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-${template}.png?amount=${amount}&addInfo=${orderCode}&accountName=${encodeURIComponent(accountName)}`;
+        
+        return vietQRUrl;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -163,47 +189,136 @@ export default function Checkout() {
             return;
         }
 
-        if (paymentMethod === 'qr') {
-            // Show QR code for bank transfer
-            setShowQRCode(true);
-        } else {
+        if (paymentMethod === 'cash') {
             // Create order immediately for cash payment
-            await handleOrderConfirmation();
+            await createOrderForCash();
+        } else {
+            // For QR payment: Create order first with PENDING status, then show QR
+            await createOrderForQR();
         }
     };
 
-    const handleOrderConfirmation = async () => {
+    // Handle cash payment
+    const createOrderForCash = async () => {
         try {
             setSubmitting(true);
             setError(null);
 
-            const orderPayload = createOrderPayload();
-            console.log("Creating order with payload:", orderPayload);
+            const orderPayload = createOrderPayload('PENDING');
+            console.log("Creating cash order with payload:", orderPayload);
             
             const result = await orderService.createOrder(orderPayload);
             console.log("Order creation result:", result);
 
             if (result.success) {
-                // Clear cart using reset from Zustand store after successful order
                 reset();
-                console.log("Order data:", result.data);
                 setOrderPlaced(true);
                 
-                // Redirect to home after 3 seconds
                 setTimeout(() => {
                     window.location.href = '/';
                 }, 3000);
             } else {
                 setError(result.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.');
-                setSubmitting(false);
-                setShowQRCode(false); // Go back if QR payment failed
             }
         } catch (error: any) {
             console.error('Order creation error:', error);
             setError(error.message || 'Đã xảy ra lỗi. Vui lòng thử lại.');
+        } finally {
             setSubmitting(false);
-            setShowQRCode(false); // Go back if QR payment failed
         }
+    };
+
+    // Handle QR payment - Create order first, then show QR
+    const createOrderForQR = async () => {
+        try {
+            setSubmitting(true);
+            setError(null);
+
+            const orderPayload = createOrderPayload('AWAITING_PAYMENT');
+            console.log("Creating QR order with payload:", orderPayload);
+            
+            const result = await orderService.createOrder(orderPayload);
+            console.log("QR Order creation result:", result);
+
+            if (result.success && result.data) {
+                // Store order data for payment confirmation
+                setPendingOrderData({
+                    orderId: result.data.id || result.data.orderId,
+                    orderCode: result.data.orderCode || `ORD${Date.now()}`,
+                    total: total
+                });
+                setPaymentStatus('pending');
+                setShowQRCode(true);
+            } else {
+                setError(result.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.');
+            }
+        } catch (error: any) {
+            console.error('QR Order creation error:', error);
+            setError(error.message || 'Đã xảy ra lỗi. Vui lòng thử lại.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    // Confirm payment after user says they paid
+    const handlePaymentConfirmation = async () => {
+        if (!pendingOrderData) {
+            setError('Không tìm thấy thông tin đơn hàng.');
+            return;
+        }
+
+        try {
+            setPaymentStatus('checking');
+            setError(null);
+
+            // Option 1: Simply mark as paid (trust user)
+            // Option 2: Check with payment gateway API
+            // Option 3: Manual verification by staff
+
+            // For now, we'll update the order status to PAID
+            const updateResult = await orderService.updatePaymentStatus(
+                pendingOrderData.orderId, 
+                'PAID'
+            );
+
+            console.log("Payment update result:", updateResult);
+
+            if (updateResult.success) {
+                setPaymentStatus('confirmed');
+                reset(); // Clear cart
+                
+                // Show success and redirect
+                setTimeout(() => {
+                    setOrderPlaced(true);
+                }, 1500);
+                
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 4500);
+            } else {
+                setPaymentStatus('failed');
+                setError(updateResult.message || 'Không thể xác nhận thanh toán. Vui lòng liên hệ hỗ trợ.');
+            }
+        } catch (error: any) {
+            console.error('Payment confirmation error:', error);
+            setPaymentStatus('failed');
+            setError(error.message || 'Đã xảy ra lỗi khi xác nhận thanh toán.');
+        }
+    };
+
+    // Cancel QR payment and go back
+    const handleCancelQRPayment = async () => {
+        if (pendingOrderData) {
+            try {
+                // Optionally cancel/delete the pending order
+                await orderService.cancelOrder(pendingOrderData.orderId, "QR payment canceled by user");
+            } catch (error) {
+                console.error('Error canceling order:', error);
+            }
+        }
+        setPendingOrderData(null);
+        setShowQRCode(false);
+        setPaymentStatus('pending');
     };
 
     if (loading) {
@@ -226,6 +341,11 @@ export default function Checkout() {
                         Đặt hàng thành công!
                     </h2>
                     <p className="text-gray-600 mb-2">Cảm ơn bạn đã đặt hàng.</p>
+                    {pendingOrderData && (
+                        <p className="text-gray-800 font-semibold mb-2">
+                            Mã đơn hàng: {pendingOrderData.orderCode}
+                        </p>
+                    )}
                     <p className="text-gray-600">Chúng tôi sẽ liên hệ với bạn sớm nhất.</p>
                     <div className="mt-6 text-sm text-gray-500">
                         Đang chuyển về trang chủ...
@@ -243,34 +363,94 @@ export default function Checkout() {
                         Thanh toán bằng QR Code
                     </h2>
                     
+                    {/* Order Info */}
+                    {pendingOrderData && (
+                        <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                            <p className="text-sm text-gray-600">Mã đơn hàng:</p>
+                            <p className="font-bold text-lg text-gray-800">{pendingOrderData.orderCode}</p>
+                        </div>
+                    )}
+                    
                     <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-xl mb-6">
                         <div className="text-center mb-4">
-                            <p className="text-gray-700 font-semibold mb-2">Tổng thanh toán:</p>
-                            <p className="text-4xl font-bold text-[#D4AF37]">${total.toFixed(2)}</p>
+                            <p className="text-gray-700 font-semibold mb-2">Số tiền cần thanh toán:</p>
+                            <p className="text-4xl font-bold text-[#D4AF37]">
+                                {(total * 24000).toLocaleString('vi-VN')}đ
+                            </p>
+                            <p className="text-sm text-gray-500">(~${total.toFixed(2)} USD)</p>
                         </div>
                         
+                        {/* QR Code Display */}
                         <div className="bg-white p-6 rounded-xl shadow-inner flex items-center justify-center">
-                            <div className="w-64 h-64 bg-gray-200 flex items-center justify-center rounded-lg">
+                            {pendingOrderData ? (
                                 <div className="text-center">
-                                    <div className="text-6xl mb-2">📱</div>
-                                    <p className="text-sm text-gray-600">QR Code sẽ hiển thị ở đây</p>
-                                    <p className="text-xs text-gray-500 mt-2">
-                                        Quét mã để thanh toán
-                                    </p>
+                                    {/* Option 1: Use VietQR API */}
+                                    <img 
+                                        src={generateVietQRUrl(
+                                            pendingOrderData.orderCode, 
+                                            Math.round(total * 24000)
+                                        )}
+                                        alt="QR Code thanh toán"
+                                        className="w-64 h-64 mx-auto"
+                                        onError={(e) => {
+                                            // Fallback if VietQR fails
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                    />
+                                    
+                                    {/* Bank Transfer Info */}
+                                    <div className="mt-4 text-left bg-gray-50 p-4 rounded-lg">
+                                        <p className="text-sm font-semibold text-gray-700 mb-2">
+                                            Hoặc chuyển khoản thủ công:
+                                        </p>
+                                        <div className="space-y-1 text-sm text-gray-600">
+                                            <p><span className="font-medium">Ngân hàng:</span> MB Bank</p>
+                                            <p><span className="font-medium">Số TK:</span> 0123456789</p>
+                                            <p><span className="font-medium">Chủ TK:</span> NGUYEN VAN A</p>
+                                            <p><span className="font-medium">Nội dung:</span> {pendingOrderData.orderCode}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="w-64 h-64 bg-gray-200 flex items-center justify-center rounded-lg">
+                                    <div className="text-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#D4AF37] mx-auto mb-2"></div>
+                                        <p className="text-sm text-gray-600">Đang tạo mã QR...</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
+                    {/* Instructions */}
                     <div className="space-y-3 mb-6 bg-blue-50 p-4 rounded-lg">
-                        <h3 className="font-semibold text-gray-800 mb-2">Hướng dẫn:</h3>
+                        <h3 className="font-semibold text-gray-800 mb-2">Hướng dẫn thanh toán:</h3>
                         <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
                             <li>Mở ứng dụng ngân hàng hoặc ví điện tử</li>
-                            <li>Chọn chức năng quét QR</li>
-                            <li>Quét mã QR phía trên</li>
-                            <li>Kiểm tra thông tin và xác nhận thanh toán</li>
+                            <li>Chọn chức năng quét QR hoặc chuyển khoản</li>
+                            <li>Quét mã QR hoặc nhập thông tin chuyển khoản</li>
+                            <li>
+                                <span className="text-red-600 font-medium">
+                                    Quan trọng: Ghi đúng nội dung "{pendingOrderData?.orderCode}"
+                                </span>
+                            </li>
+                            <li>Xác nhận thanh toán và nhấn "Tôi đã thanh toán"</li>
                         </ol>
                     </div>
+
+                    {/* Payment Status */}
+                    {paymentStatus === 'checking' && (
+                        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center">
+                            <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-yellow-600 mr-3"></div>
+                            <p className="text-yellow-700">Đang xác nhận thanh toán...</p>
+                        </div>
+                    )}
+
+                    {paymentStatus === 'confirmed' && (
+                        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                            <p className="text-green-700 font-semibold">✅ Thanh toán thành công!</p>
+                        </div>
+                    )}
 
                     {error && (
                         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -278,23 +458,37 @@ export default function Checkout() {
                         </div>
                     )}
 
+                    {/* Action Buttons */}
                     <button
-                        onClick={handleOrderConfirmation}
-                        disabled={submitting}
+                        onClick={handlePaymentConfirmation}
+                        disabled={paymentStatus === 'checking' || paymentStatus === 'confirmed'}
                         className={`w-full py-4 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl ${
-                            submitting ? 'opacity-50 cursor-not-allowed' : ''
+                            (paymentStatus === 'checking' || paymentStatus === 'confirmed') 
+                                ? 'opacity-50 cursor-not-allowed' 
+                                : ''
                         }`}
                     >
-                        {submitting ? 'Đang xử lý...' : 'Tôi đã thanh toán'}
+                        {paymentStatus === 'checking' 
+                            ? 'Đang xác nhận...' 
+                            : paymentStatus === 'confirmed'
+                                ? 'Đã xác nhận ✓'
+                                : 'Tôi đã thanh toán'
+                        }
                     </button>
                     
                     <button
-                        onClick={() => setShowQRCode(false)}
-                        disabled={submitting}
+                        onClick={handleCancelQRPayment}
+                        disabled={paymentStatus === 'checking' || paymentStatus === 'confirmed'}
                         className="w-full py-3 mt-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-300 font-semibold"
                     >
-                        Quay lại
+                        Hủy và quay lại
                     </button>
+
+                    {/* Support Contact */}
+                    <div className="mt-6 text-center text-sm text-gray-500">
+                        <p>Gặp vấn đề khi thanh toán?</p>
+                        <p className="font-semibold text-gray-700">Hotline: 1900 1234</p>
+                    </div>
                 </div>
             </div>
         );
@@ -541,7 +735,7 @@ export default function Checkout() {
                                                 </p>
                                                 {paymentMethod === 'qr' && (
                                                     <div className="mt-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
-                                                        <span className="font-semibold">💡 Lưu ý:</span> Bạn sẽ được chuyển đến trang quét mã QR sau khi nhấn "Đặt hàng"
+                                                        <span className="font-semibold">💡 Lưu ý:</span> Đơn hàng sẽ được tạo và bạn sẽ nhận được mã QR để thanh toán
                                                     </div>
                                                 )}
                                             </div>
