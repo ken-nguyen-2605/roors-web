@@ -21,6 +21,11 @@ Before running this project, ensure you have the following installed:
 
 - **Node.js** (v18.0.0 or higher)
 - **npm** package manager
+
+
+  
+
+  
 - **Git** for version control
 
 ## 🚀 Getting Started

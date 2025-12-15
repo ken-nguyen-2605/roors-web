@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { TrendingUp, DollarSign, ShoppingBag, Users, Calendar, Download, Filter } from 'lucide-react';
+import { TrendingUp, DollarSign, ShoppingBag, Users, Calendar, Download, Filter, Clock } from 'lucide-react';
 
 export default function ReportsSection() {
   const [dateRange, setDateRange] = useState('last7days');
@@ -33,6 +33,23 @@ export default function ReportsSection() {
     { category: 'Beverages', percentage: 12, revenue: 1824.00 },
     { category: 'Sides', percentage: 8, revenue: 1216.00 }
   ];
+
+  const peakHoursData = [
+    { hour: '10 AM', count: 12 },
+    { hour: '11 AM', count: 25 },
+    { hour: '12 PM', count: 45 },
+    { hour: '1 PM', count: 38 },
+    { hour: '2 PM', count: 20 },
+    { hour: '3 PM', count: 15 },
+    { hour: '4 PM', count: 18 },
+    { hour: '5 PM', count: 30 },
+    { hour: '6 PM', count: 55 },
+    { hour: '7 PM', count: 62 },
+    { hour: '8 PM', count: 48 },
+    { hour: '9 PM', count: 25 },
+  ];
+  
+  const maxPeak = Math.max(...peakHoursData.map(d => d.count));
 
   const totalSales = salesData.reduce((sum, d) => sum + d.sales, 0);
   const totalOrders = salesData.reduce((sum, d) => sum + d.orders, 0);
@@ -234,39 +251,40 @@ export default function ReportsSection() {
         </div>
       </div>
 
-      {/* Additional Insights */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="rounded-2xl border-2 border-white/20 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-xl p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
-              {/* <Clock className="w-5 h-5 text-white" /> */}
-            </div>
-            <h4 className="font-bold text-gray-900">Peak Hours</h4>
+      {/* Peak Reservation Hours */}
+      <div className="rounded-2xl border-2 border-white/20 bg-white shadow-xl p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
+            <Clock className="w-6 h-6" />
           </div>
-          <div className="text-2xl font-bold text-blue-600 mb-1">12PM - 2PM</div>
-          <div className="text-sm text-gray-600">Highest order volume</div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Peak Reservation Hours</h3>
+            <p className="text-sm text-gray-500">Average number of reservations by hour</p>
+          </div>
         </div>
-
-        <div className="rounded-2xl border-2 border-white/20 bg-gradient-to-br from-green-50 to-emerald-50 shadow-xl p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-white" />
+        
+        <div className="h-64 flex items-end gap-2 sm:gap-4">
+          {peakHoursData.map((data, idx) => (
+            <div key={idx} className="flex-1 flex flex-col items-center gap-2 group">
+              <div className="relative w-full flex items-end justify-center h-full">
+                <div 
+                  className="w-full bg-orange-100 rounded-t-lg group-hover:bg-orange-200 transition-colors relative"
+                  style={{ height: `${(data.count / maxPeak) * 100}%` }}
+                >
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                    {data.count} reservations
+                  </div>
+                </div>
+                <div 
+                  className="absolute bottom-0 w-full bg-gradient-to-t from-orange-500 to-red-500 rounded-t-lg opacity-80 group-hover:opacity-100 transition-opacity"
+                  style={{ height: `${(data.count / maxPeak) * 100}%` }}
+                />
+              </div>
+              <span className="text-xs font-medium text-gray-600 -rotate-45 sm:rotate-0 origin-top sm:origin-center mt-2 sm:mt-0 whitespace-nowrap">
+                {data.hour}
+              </span>
             </div>
-            <h4 className="font-bold text-gray-900">Best Day</h4>
-          </div>
-          <div className="text-2xl font-bold text-green-600 mb-1">Saturday</div>
-          <div className="text-sm text-gray-600">$3,150 in sales</div>
-        </div>
-
-        <div className="rounded-2xl border-2 border-white/20 bg-gradient-to-br from-purple-50 to-pink-50 shadow-xl p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center">
-              <Users className="w-5 h-5 text-white" />
-            </div>
-            <h4 className="font-bold text-gray-900">Customer Rate</h4>
-          </div>
-          <div className="text-2xl font-bold text-purple-600 mb-1">68% Repeat</div>
-          <div className="text-sm text-gray-600">Customer loyalty</div>
+          ))}
         </div>
       </div>
     </section>
