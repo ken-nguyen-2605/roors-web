@@ -12,6 +12,12 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# 1. Declare the argument
+ARG NEXT_PUBLIC_API_BASE_URL
+
+# 2. Set it as an environment variable so the build process can see it
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+
 # Build the application
 RUN npm run build
 
