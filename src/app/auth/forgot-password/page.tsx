@@ -101,8 +101,8 @@ export default function ForgotPasswordPage() {
       setError('');
       setIsSuccess(true);
       setSuccessMessage(result.message || 'Password reset link sent to your email');
-    } catch (err) {
-      setError(err?.message || 'Failed to send reset email. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset email. Please try again.');
       console.error('Password reset error:', err);
     } finally {
       setIsLoading(false);
@@ -201,7 +201,7 @@ export default function ForgotPasswordPage() {
                         {/* Back to Sign In Link */}
                         <p className={styles.form.textCenter}>
                           Remember your password?{' '}
-                          <Link href="/signin" className={styles.form.link}>
+                          <Link href="/auth/login" className={styles.form.link}>
                             Sign In
                           </Link>
                         </p>
@@ -247,7 +247,7 @@ export default function ForgotPasswordPage() {
                       </p>
 
                       <Link 
-                        href="/signin" 
+                        href="/auth/login" 
                         className={`block ${styles.form.submitButton} inline-block`}
                       >
                         Back to Sign In

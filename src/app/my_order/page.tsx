@@ -30,7 +30,7 @@ interface Order {
   orderNumber: string;
   date: string;
   time: string;
-  status: "pending" | "preparing" | "ready" | "delivering" | "completed" | "cancelled";
+  status: "pending" | "confirmed" | "preparing" | "ready" | "delivering" | "completed" | "cancelled";
   items: OrderItem[];
   subtotal: number;
   total: number;

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useScrollTrigger } from "@/utils/ScrollState";
-import authService from "@/services/authService";
+import { useAuth } from "@/contexts/AuthContext"; // ✅ Import the hook
 
 import { Italianno } from 'next/font/google';
 const italianno = Italianno({
@@ -23,28 +23,8 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
     const [username, setUsername] = useState("");
     const profileRef = useRef<HTMLDivElement>(null);
 
-    // Check authentication status on mount and when component updates
-    useEffect(() => {
-        checkAuthStatus();
-        
-        // Listen for storage changes (for cross-tab logout)
-        const handleStorageChange = () => {
-            checkAuthStatus();
-        };
-        
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
-
-    const checkAuthStatus = () => {
-        const isAuth = authService.isAuthenticated();
-        setIsLoggedIn(isAuth);
-        
-        if (isAuth) {
-            const user = authService.getCurrentUser();
-            setUsername(user?.username || "User");
-        }
-    };
+    // ✅ Use the AuthContext instead of hardcoded value
+    const { user, isAuthenticated, logout, loading } = useAuth();
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -58,29 +38,10 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleLogout = async () => {
-        try {
-            const result = await authService.logout();
-            
-            if (result.success) {
-                setIsLoggedIn(false);
-                setUsername("");
-                setIsProfileOpen(false);
-                
-                // Redirect to home page
-                router.push('/');
-                
-                // Optional: Show success message
-                // toast.success('Logged out successfully');
-            }
-        } catch (error) {
-            console.error('Logout error:', error);
-            // Still clear client-side state even if backend call fails
-            setIsLoggedIn(false);
-            setUsername("");
-            setIsProfileOpen(false);
-            router.push('/');
-        }
+    // ✅ Handle logout
+    const handleLogout = () => {
+        logout();
+        setIsProfileOpen(false);
     };
 
     return (
@@ -114,9 +75,20 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
                     {/* Dropdown Menu */}
                     {isProfileOpen && (
                         <div className="absolute top-9 right-0 mt-2 w-48 bg-black border border-yellow-600/30 rounded-lg shadow-lg overflow-hidden">
-                            {isLoggedIn ? (
-                                // Logged in menu
+                            {/* ✅ Show loading state */}
+                            {loading ? (
+                                <div className="px-4 py-3 text-center">
+                                    <span className="text-gray-400">Loading...</span>
+                                </div>
+                            ) : isAuthenticated ? (
+                                // ✅ Logged in menu
                                 <>
+                                    {/* ✅ Show user info */}
+                                    <div className="px-4 py-3 border-b border-yellow-600/20 bg-yellow-600/10">
+                                        <p className="font-semibold">{user?.username}</p>
+                                        <p className="text-xs text-gray-400">{user?.role}</p>
+                                    </div>
+                                    
                                     <Link 
                                         href="/profile"
                                         className="block px-4 py-3 hover:bg-yellow-600/20 transition-colors border-b border-yellow-600/20"
@@ -147,6 +119,7 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
                                             <span>My Reservations</span>
                                         </div>
                                     </Link>
+                                    {/* ✅ Logout button now works! */}
                                     <button 
                                         className="w-full text-left px-4 py-3 hover:bg-red-600/20 transition-colors text-red-400"
                                         onClick={handleLogout}

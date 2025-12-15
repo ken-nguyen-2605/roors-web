@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from 'react';
-import { UserPlus, Edit2, Trash2, Shield, Eye, Search, X, Mail, Phone, Calendar } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { UserPlus, Edit2, Trash2, Shield, Eye, Search, X, Mail, Phone, Calendar, CheckCircle2, AlertCircle, ArrowUpRight } from 'lucide-react';
+import apiService from '@/services/api';
 
 interface User {
   id: number;
   name: string;
   email: string;
   phone: string;
-  role: 'Owner' | 'Manager' | 'Chef' | 'Server' | 'Host';
+  role: 'Manager' | 'Staff' | 'Customer' | 'Owner';
   status: 'Active' | 'Inactive' | 'On Leave';
   joinedDate: Date;
   lastActive: Date;
@@ -20,14 +21,15 @@ export default function UsersAndRolesSection() {
   const [filterRole, setFilterRole] = useState('All');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isManager, setIsManager] = useState(false);
 
   const [users, setUsers] = useState<User[]>([
     {
       id: 1,
-      name: 'Michael Chen',
-      email: 'michael.chen@restaurant.com',
+      name: 'Morgan Lee',
+      email: 'morgan.lee@restaurant.com',
       phone: '+1-555-0301',
-      role: 'Owner',
+      role: 'Manager',
       status: 'Active',
       joinedDate: new Date('2023-01-15'),
       lastActive: new Date(),
@@ -38,7 +40,7 @@ export default function UsersAndRolesSection() {
       name: 'Sarah Johnson',
       email: 'sarah.j@restaurant.com',
       phone: '+1-555-0302',
-      role: 'Manager',
+      role: 'Staff',
       status: 'Active',
       joinedDate: new Date('2023-03-20'),
       lastActive: new Date(Date.now() - 2 * 3600000),
@@ -49,7 +51,7 @@ export default function UsersAndRolesSection() {
       name: 'David Martinez',
       email: 'david.m@restaurant.com',
       phone: '+1-555-0303',
-      role: 'Chef',
+      role: 'Staff',
       status: 'Active',
       joinedDate: new Date('2023-05-10'),
       lastActive: new Date(Date.now() - 5 * 3600000),
@@ -60,7 +62,7 @@ export default function UsersAndRolesSection() {
       name: 'Emily Davis',
       email: 'emily.d@restaurant.com',
       phone: '+1-555-0304',
-      role: 'Server',
+      role: 'Customer',
       status: 'Active',
       joinedDate: new Date('2024-01-08'),
       lastActive: new Date(Date.now() - 1 * 3600000),
@@ -71,7 +73,7 @@ export default function UsersAndRolesSection() {
       name: 'James Wilson',
       email: 'james.w@restaurant.com',
       phone: '+1-555-0305',
-      role: 'Host',
+      role: 'Customer',
       status: 'On Leave',
       joinedDate: new Date('2024-02-12'),
       lastActive: new Date(Date.now() - 3 * 86400000),
@@ -79,14 +81,12 @@ export default function UsersAndRolesSection() {
     }
   ]);
 
-  const roles = ['All', 'Owner', 'Manager', 'Chef', 'Server', 'Host'];
+  const roles = ['All', 'Manager', 'Staff', 'Customer'];
 
   const rolePermissions = {
-    'Owner': ['Dashboard', 'Orders', 'Reservations', 'Menu', 'Staff Management', 'Reports', 'Settings', 'Customers'],
     'Manager': ['Dashboard', 'Orders', 'Reservations', 'Menu', 'Staff Management', 'Reports', 'Customers'],
-    'Chef': ['Orders', 'Menu'],
-    'Server': ['Orders', 'Reservations', 'Customers'],
-    'Host': ['Reservations', 'Customers']
+    'Staff': ['Orders', 'Reservations', 'Menu', 'Customers'],
+    'Customer': ['Profile', 'Orders', 'Reservations']
   };
 
   const filteredUsers = users.filter(user => {
@@ -107,11 +107,9 @@ export default function UsersAndRolesSection() {
 
   const getRoleColor = (role: User['role']) => {
     switch (role) {
-      case 'Owner': return 'bg-purple-100 text-purple-700';
       case 'Manager': return 'bg-blue-100 text-blue-700';
-      case 'Chef': return 'bg-orange-100 text-orange-700';
-      case 'Server': return 'bg-green-100 text-green-700';
-      case 'Host': return 'bg-pink-100 text-pink-700';
+      case 'Staff': return 'bg-orange-100 text-orange-700';
+      case 'Customer': return 'bg-green-100 text-green-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
@@ -130,6 +128,18 @@ export default function UsersAndRolesSection() {
     return `${days}d ago`;
   };
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const raw = localStorage.getItem('userInfo');
+      try {
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (parsed?.role === 'MANAGER') setIsManager(true);
+      } catch (e) {
+        setIsManager(false);
+      }
+    }
+  }, []);
+
   return (
     <section id="users" className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -137,13 +147,15 @@ export default function UsersAndRolesSection() {
           <h2 className="text-3xl font-bold text-white drop-shadow-lg">Users & Roles</h2>
           <p className="text-white/80 mt-1">{users.length} team members</p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium shadow-lg hover:shadow-xl transition-all hover:scale-105"
-        >
-          <UserPlus className="w-5 h-5" />
-          Add Team Member
-        </button>
+        {isManager && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium shadow-lg hover:shadow-xl transition-all hover:scale-105"
+          >
+            <UserPlus className="w-5 h-5" />
+            Create Staff
+          </button>
+        )}
       </div>
 
       {/* Search and Filter */}
@@ -224,8 +236,25 @@ export default function UsersAndRolesSection() {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      {user.role !== 'Owner' && (
+                      {isManager && user.role !== 'Manager' && (
                         <>
+                          {user.role !== 'Staff' && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await apiService.post(`/api/admin/users/${user.id}/verify-staff`);
+                                  setUsers(users.map(u => u.id === user.id ? { ...u, role: 'Staff' } : u));
+                                } catch (err) {
+                                  console.error('Failed to promote to staff', err);
+                                  alert('Failed to promote to staff');
+                                }
+                              }}
+                              className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
+                              title="Make Staff"
+                            >
+                              <ArrowUpRight className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             className="p-2 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors"
                             title="Edit"
@@ -291,7 +320,7 @@ export default function UsersAndRolesSection() {
 
       {/* Add User Modal */}
       {showAddModal && (
-        <AddUserModal
+        <AddStaffModal
           onClose={() => setShowAddModal(false)}
           onAdd={(newUser) => {
             setUsers([...users, { ...newUser, id: Math.max(...users.map(u => u.id)) + 1 }]);
@@ -395,45 +424,88 @@ function UserDetailModal({ user, onClose }: { user: User; onClose: () => void })
   );
 }
 
-function AddUserModal({ onClose, onAdd }: { onClose: () => void; onAdd: (user: any) => void }) {
+function AddStaffModal({ onClose, onAdd }: { onClose: () => void; onAdd: (user: any) => void }) {
   const [formData, setFormData] = useState({
-    name: '',
+    username: '',
     email: '',
-    phone: '',
-    role: 'Server' as User['role'],
-    status: 'Active' as User['status']
+    password: '',
+    confirmPassword: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd({
-      ...formData,
-      joinedDate: new Date(),
-      lastActive: new Date(),
-      permissions: []
-    });
+    setError(null);
+    setSuccess(null);
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await apiService.post('/api/admin/users/create-staff', {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+      });
+      setSuccess('Staff account created');
+      onAdd({
+        name: formData.username,
+        email: formData.email,
+        phone: '',
+        role: 'Staff' as User['role'],
+        status: 'Active' as User['status'],
+        joinedDate: new Date(),
+        lastActive: new Date(),
+        permissions: ['orders', 'menu'],
+      });
+      setFormData({ username: '', email: '', password: '', confirmPassword: '' });
+    } catch (err: any) {
+      const message = err?.message || 'Failed to create staff account';
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
         <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-4 flex items-center justify-between">
-          <h3 className="text-xl font-bold">Add Team Member</h3>
+          <h3 className="text-xl font-bold">Create Staff (Manager)</h3>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-700 border border-red-200">
+              <AlertCircle className="w-4 h-4" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+          {success && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 text-green-700 border border-green-200">
+              <CheckCircle2 className="w-4 h-4" />
+              <span className="text-sm">{success}</span>
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
             <input
               type="text"
               required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="John Doe"
+              placeholder="staffuser"
             />
           </div>
 
@@ -445,49 +517,49 @@ function AddUserModal({ onClose, onAdd }: { onClose: () => void; onAdd: (user: a
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="john@restaurant.com"
+              placeholder="staff@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
             <input
-              type="tel"
+              type="password"
               required
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              placeholder="+1-555-0000"
+              placeholder="Min 6 characters"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as User['role'] })}
+            <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+            <input
+              type="password"
+              required
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="Manager">Manager</option>
-              <option value="Chef">Chef</option>
-              <option value="Server">Server</option>
-              <option value="Host">Host</option>
-            </select>
+              placeholder="Re-enter password"
+            />
           </div>
 
           <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-300 font-medium hover:bg-gray-50 transition-colors"
+              disabled={submitting}
+              className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-300 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium hover:shadow-lg transition-all"
+              disabled={submitting}
+              className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium hover:shadow-lg transition-all disabled:opacity-50"
             >
-              Add Member
+              {submitting ? 'Creating...' : 'Create Staff'}
             </button>
           </div>
         </form>

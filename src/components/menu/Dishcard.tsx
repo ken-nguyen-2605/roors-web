@@ -13,7 +13,7 @@ type DishCardProps = Dish & {
 };
 
 
-export default function DishCard({id, image, name, description, price, categories, quantity, rating, onQuantityChange}: DishCardProps) {
+export default function DishCard({id, images, names, descriptions, price, categories, quantity, rating, onQuantityChange}: DishCardProps) {
 
     const inc = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -32,7 +32,7 @@ export default function DishCard({id, image, name, description, price, categorie
                 href={`/menu/${id}`}
                 >
                     <Image
-                        src={image}
+                        src={images}
                         alt=""
                         fill
                         className="object-cover menu-card-image"

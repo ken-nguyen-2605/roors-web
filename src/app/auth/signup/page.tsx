@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { ChangeEvent, FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Star from "@/components/decorativeComponents/Star";
@@ -68,6 +68,13 @@ const styles = {
   },
 };
 
+interface FormErrors {
+  username?: string;
+  email?: string;
+  password?: string;
+  agreeToTerms?: string;
+}
+
 export default function SignUpPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -77,26 +84,26 @@ export default function SignUpPage() {
     agreeToTerms: false
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [apiSuccess, setApiSuccess] = useState('');
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
 
-    if (errors[name]) {
+    if (name in errors) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
     if (apiError) setApiError('');
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: FormErrors = {};
 
     if (!formData.username.trim()) {
       newErrors.username = 'Username is required';
@@ -124,7 +131,7 @@ export default function SignUpPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setApiError('');
     setApiSuccess('');

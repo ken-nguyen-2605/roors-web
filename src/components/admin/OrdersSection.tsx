@@ -1,17 +1,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Clock, Eye, CheckCircle, XCircle, AlertCircle, Calendar, Loader2, Package } from 'lucide-react';
+import { Clock, Eye, CheckCircle, XCircle, AlertCircle, Calendar, Loader2, Package, Star } from 'lucide-react';
 import orderService from '@/services/orderService';
 
 interface OrderItem {
   id: string;
-  menuItem: {
-    id: string;
-    name: string;
-    price: number;
-    imageUrl?: string;
-  };
+  menuItemName: string;
+  unitPrice: number;
   quantity: number;
   price: number;
   subtotal: number;
@@ -23,15 +19,17 @@ interface Order {
   customerName: string;
   customerPhone: string;
   deliveryAddress?: string;
-  orderItems: OrderItem[];
+  items: OrderItem[];
   subtotal: number;
-  tax: number;
+  taxAmount: number;
   deliveryFee: number;
   totalAmount: number;
   status: 'PENDING' | 'PREPARING' | 'READY' | 'DELIVERED' | 'CANCELLED';
   specialInstructions?: string;
   createdAt: string;
   updatedAt: string;
+  rating?: number;
+  feedback?: string;
 }
 
 export default function OrdersSection() {
@@ -258,6 +256,7 @@ export default function OrdersSection() {
                     <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Items</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                    <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Rating</th>
                     <th className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Time</th>
                     <th className="text-right px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -266,7 +265,12 @@ export default function OrdersSection() {
                   {filteredOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="font-bold text-gray-900">#{order.id}</div>
+                        <button 
+                          onClick={() => setSelectedOrder(order)}
+                          className="font-bold text-gray-900 hover:text-orange-600 hover:underline text-left"
+                        >
+                          #{order.id}
+                        </button>
                       </td>
                       <td className="px-6 py-4">
                         <div className="font-medium text-gray-900">{order.customerName}</div>
@@ -287,6 +291,16 @@ export default function OrdersSection() {
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                           {getStatusLabel(order.status)}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {order.rating ? (
+                          <div className="flex items-center gap-1 text-yellow-500">
+                            <span className="font-bold">{order.rating}</span>
+                            <Star className="w-4 h-4 fill-current" />
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">No rating</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {formatTime(order.createdAt)}
@@ -420,6 +434,22 @@ function OrderDetailModal({
               <div className="font-medium text-gray-900">{formatDateTime(order.createdAt)}</div>
             </div>
           </div>
+
+          {/* Rating & Feedback */}
+          {order.rating && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <h4 className="font-semibold text-gray-900">Customer Rating</h4>
+                <div className="flex items-center gap-1 text-yellow-500 bg-white px-2 py-1 rounded-full shadow-sm">
+                  <span className="font-bold">{order.rating}</span>
+                  <Star className="w-4 h-4 fill-current" />
+                </div>
+              </div>
+              {order.feedback && (
+                <p className="text-gray-700 italic">"{order.feedback}"</p>
+              )}
+            </div>
+          )}
 
           {/* Customer Information */}
           <div>

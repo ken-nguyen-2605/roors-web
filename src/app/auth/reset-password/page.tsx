@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import { Suspense, useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Star from "@/components/decorativeComponents/Star";
@@ -64,11 +64,23 @@ type PasswordForm = {
 
 type ValidationErrors = Partial<Record<'password' | 'confirmPassword' | 'submit', string>>;
 
-export default function ResetPasswordPage() {
+function LoadingState() {
+  return (
+    <div className="text-center space-y-6">
+      <div className="flex justify-center">
+        <div className="w-20 h-20 border-4 border-gray-200 border-t-[#D4AF37] rounded-full animate-spin"></div>
+      </div>
+      <h2 className="text-4xl font-bold mb-4 text-center">Loading...</h2>
+      <p className="text-gray-600 text-center mb-8">Please wait...</p>
+    </div>
+  );
+}
+// Separate component that uses useSearchParams
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [token, setToken] = useState('');
-  const [tokenValid, setTokenValid] = useState<boolean | null>(null); // null = checking, true = valid, false = invalid
+  const [tokenValid, setTokenValid] = useState<boolean | null>(null);
   const [formData, setFormData] = useState<PasswordForm>({
     password: '',
     confirmPassword: ''
@@ -101,7 +113,7 @@ export default function ResetPasswordPage() {
 
       return () => clearTimeout(timer);
     } else if (isSuccess && countdown === 0) {
-      router.push('/signin');
+      router.push('/auth/login');
     }
   }, [isSuccess, countdown, router]);
 
@@ -112,7 +124,7 @@ export default function ResetPasswordPage() {
       [name]: value
     }));
 
-    if (errors[name]) {
+    if (name in errors) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
@@ -162,7 +174,7 @@ export default function ResetPasswordPage() {
       }
 
       setIsSuccess(true);
-    } catch (error) {
+    } catch (error: any) {
       setErrors({ submit: error?.message || 'Failed to reset password. Please try again.' });
       console.error('Password reset error:', error);
     } finally {
@@ -269,7 +281,7 @@ export default function ResetPasswordPage() {
           </p>
 
           <div className="space-y-4 pt-4">
-            <Link href="/signin" className={`block ${styles.form.button}`}>
+            <Link href="/auth/login" className={`block ${styles.form.button}`}>
               Sign In to Your Account
             </Link>
 
@@ -408,7 +420,7 @@ export default function ResetPasswordPage() {
           {/* Back to Sign In Link */}
           <p className={styles.form.textCenter}>
             Remember your password?{' '}
-            <Link href="/signin" className={styles.form.link}>
+            <Link href="/auth/login" className={styles.form.link}>
               Sign In
             </Link>
           </p>
@@ -417,6 +429,10 @@ export default function ResetPasswordPage() {
     );
   };
 
+    return renderContent();
+}
+
+export default function ResetPasswordPage() {
   return (
     <div className={styles.page.container}>
       
@@ -460,11 +476,13 @@ export default function ResetPasswordPage() {
               </div>
             </div>
 
-            {/* Right - Form Section */}
+            {/* Right - Form Section with Suspense */}
             <div className={styles.formSection.container}>
               <div className={styles.formSection.formWrapper}>
                 <div className={styles.formSection.formContainer}>
-                  {renderContent()}
+                  <Suspense fallback={<LoadingState />}>
+                    <ResetPasswordForm />
+                  </Suspense>
                 </div>
               </div>
             </div>

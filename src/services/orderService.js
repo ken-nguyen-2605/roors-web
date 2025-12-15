@@ -76,7 +76,7 @@ class OrderService {
       if (search) params.set('search', search);
 
       const qs = params.toString();
-      const response = await apiService.get(`/api/orders?${qs}`);
+      const response = await apiService.get(`/api/admin/orders?${qs}`);
       return {
         success: true,
         data: response,
@@ -103,7 +103,7 @@ class OrderService {
       if (orderType) params.set('orderType', orderType);
 
       const qs = params.toString();
-      const response = await apiService.get(`/api/orders/status/${status}?${qs}`);
+      const response = await apiService.get(`/api/admin/orders/status/${status}?${qs}`);
       
       return {
         success: true,
@@ -154,7 +154,7 @@ class OrderService {
       if (status) params.set('status', status);
 
       const qs = params.toString();
-      const response = await apiService.get(`/api/orders/date/${date}?${qs}`);
+      const response = await apiService.get(`/api/admin/orders/date/${date}?${qs}`);
       
       console.log('Orders by Date Response:', response);
 
@@ -175,7 +175,44 @@ class OrderService {
   }
 
 
+/**
+ * 
+ * // ✅ NEW: Check payment status by payment ID
+    checkPaymentStatus: async (paymentId: string) => {
+        try {
+            const response = await apiService.get(`/api/payments/${paymentId}`);
+            return {
+                success: true,
+                data: response
+            };
+        } catch (error: any) {
+            console.error('Check payment status error:', error);
+            return {
+                success: false,
+                message: error.message || 'Failed to check payment status'
+            };
+        }
+    },
 
+ */
+
+  // Check payment status
+  async checkPaymentStatus(paymentCode) {
+    try {
+      const response = await apiService.get(`/api/payments/${paymentCode}`);
+      return {
+        success: true,
+        data: response,
+        message: 'Payment status retrieved',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Failed to retrieve payment status',
+        status: error.status,
+      };
+    }
+  }
 
   // Update order (full or partial payload)
   async updateOrder(orderId, payload) {
@@ -198,7 +235,7 @@ class OrderService {
   // Update order status only
   async updateStatus(orderId, status) {
     try {
-      const response = await apiService.put(`/api/orders/${orderId}/status`, {"status": status});
+      const response = await apiService.put(`/api/admin/orders/${orderId}/status?status=${status}`, {});
 
       return {
         success: true,
@@ -484,6 +521,22 @@ class OrderService {
     }
   }
 
+  async reorder(orderId) {
+    try {
+      const response = await apiService.post(`/api/orders/${orderId}/reorder`);
+      return {
+        success: true,
+        data: response,
+        message: 'Re-order placed successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Failed to place re-order',
+        status: error.status,
+      };
+    }
+  }
 }
 
 export default new OrderService();
