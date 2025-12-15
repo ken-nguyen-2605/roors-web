@@ -481,8 +481,8 @@ export default function Menu() {
                                                 </div>
                                             </div>
                                             <div className="flex flex-col justify-end text-end">
-                                                <span className="">{item.price}$</span>
-                                                <span className="text-xl">{(quantity * item.price).toFixed(2)}$</span>
+                                                <span className="">{item.price} VND</span>
+                                                <span className="text-xl">{(quantity * item.price).toFixed(2)} VND</span>
                                             </div>
                                         </div>
                                     ))}
@@ -501,7 +501,7 @@ export default function Menu() {
                                     }
                                     <span className="text-xl">Dishes: {totalItems}(s)</span>
                                 </div>
-                                <span>Total: {totalPrice.toFixed(2)}$</span>
+                                <span>Total: {totalPrice.toFixed(2)} VND</span>
                             </div>
                         </div>
                     </div>
@@ -532,7 +532,7 @@ export default function Menu() {
                             onClick={(e) => e.stopPropagation()}>
                             <div className={`top-0 flex-center w-full h-[80px] creamy-white-bg  ${italiana.className} border-b-2 border-black text-3xl z-20`}>Customization</div>
                             <div className="w-full h-fit px-11 py-5">
-                                <label className="text-2xl">Price ($):</label>
+                                <label className="text-2xl">Price (VND):</label>
                                 <div className="flex-center mt-2">
                                     <input
                                         type="number"

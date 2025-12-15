@@ -11,12 +11,14 @@ import { Icon } from "@iconify/react";
 import RatingFeedback from "@/components/order/RatingFeedback";
 
 import orderService from "@/services/orderService";
+import { useNoteStore } from "@/stores/useNoteStore";
 
 const inriaSerif = Inria_Serif({ weight: ["300"], subsets: ["latin"] });
 const italiana = Italiana({ weight: ["400"], subsets: ["latin"] });
 
 interface OrderItem {
   id: number | string;
+  menuItemId?: number | string;
   name: string;
   quantity: number;
   price: number;
@@ -194,6 +196,7 @@ const CancelModal = ({ isOpen, onClose, onConfirm, orderNumber }: CancelModalPro
 
 export default function OrderHistory() {
   const router = useRouter();
+  const { setQuantity, reset } = useNoteStore();
 
   // API integration state
   const [loading, setLoading] = useState(true);
@@ -229,6 +232,7 @@ export default function OrderHistory() {
 
     const items = o.items.map((it: any) => ({
       id: it.id,
+      menuItemId: it.menuItemId,
       name: it.menuItemName,
       quantity: it.quantity,
       price: it.unitPrice,
@@ -335,15 +339,36 @@ export default function OrderHistory() {
 
   const handleReorder = async (order: Order) => {
     try {
-      const res = await orderService.reOrder(String(order.id));
-      if (res?.success) {
-        alert("Order placed successfully!");
-        router.push("/my_order");
-      } else {
-        alert(res?.message || "Failed to reorder");
+      // Clear current cart so only reordered items are present
+      reset();
+
+      // Add each order item to the cart
+      let itemsAdded = 0;
+
+      for (const item of order.items) {
+        // Check if menuItemId is available
+        if (item.menuItemId) {
+          const menuItemId = Number(item.menuItemId);
+          const quantity = item.quantity;
+
+          // Set quantity for this item in the cart
+          setQuantity(menuItemId, quantity);
+          itemsAdded++;
+        } else {
+          console.warn(`Item ${item.name} does not have menuItemId, skipping...`);
+        }
       }
+
+      if (itemsAdded === 0) {
+        alert("Unable to add items to cart. Some items may not be available.");
+        return;
+      }
+
+      // Navigate to checkout page
+      router.push("/checkout_page");
     } catch (error) {
-      alert("An error occurred while reordering");
+      console.error("Error adding items to cart:", error);
+      alert("An error occurred while adding items to cart");
     }
   };
 
@@ -617,7 +642,7 @@ export default function OrderHistory() {
                       </div>
                       <div className={`text-right ${isLightBackground ? "text-black" : "text-white"}`}>
                         <p className="text-sm opacity-75">Total Amount</p>
-                        <p className="text-3xl font-bold">${order.total.toFixed(2)}</p>
+                        <p className="text-3xl font-bold">{order.total.toFixed(2)} VND</p>
                       </div>
                     </div>
 
@@ -707,7 +732,7 @@ export default function OrderHistory() {
                                   </div>
                                 )}
                               </div>
-                              <span className="font-semibold text-lg">${(item.price * item.quantity).toFixed(2)}</span>
+                              <span className="font-semibold text-lg">{(item.price * item.quantity).toFixed(2)} VND</span>
                             </div>
                           ))}
                         </div>
@@ -716,16 +741,16 @@ export default function OrderHistory() {
                         <div className={`mt-4 pt-4 border-t ${isLightBackground ? "border-black/20" : "border-white/30"}`}>
                           <div className="flex justify-between items-center mb-2">
                             <span>Subtotal</span>
-                            <span>${order.subtotal.toFixed(2)}</span>
+                            <span>{order.subtotal.toFixed(2)} VND</span>
                           </div>
                           <div className="flex justify-between items-center mb-2">
                             <span>Tax (10%)</span>
-                            <span>${(order.total * 0.1).toFixed(2)}</span>
+                            <span>{(order.subtotal * 0.1).toFixed(2)} VND</span>
                           </div>
                           {order.deliveryType === "delivery" && (
                             <div className="flex justify-between items-center mb-2">
                               <span>Delivery Fee</span>
-                              <span>$5.00</span>
+                              <span>5.00 VND</span>
                             </div>
                           )}
                           <div
@@ -735,7 +760,7 @@ export default function OrderHistory() {
                           >
                             <span>Total</span>
                             <span>
-                              ${(order.subtotal * 1.1 + (order.deliveryType === "delivery" ? 5 : 0)).toFixed(2)}
+                              {(order.subtotal * 1.1 + (order.deliveryType === "delivery" ? 5 : 0)).toFixed(2)} VND
                             </span>
                           </div>
                         </div>

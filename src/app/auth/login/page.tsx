@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'; // ✅ Add this
 
 const styles = {
   page: {
-    container: "relative bg-[#F5F4ED] min-h-[952px] flex flex-col",
+    container: "relative bg-[#F5F4ED] min-h-[972px] flex flex-col",
   },
   header: {
     container: "w-full bg-black text-white py-6 border-b-4 border-[#D4AF37]",

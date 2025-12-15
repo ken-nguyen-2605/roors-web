@@ -440,7 +440,7 @@ export default function ReportsSection() {
           <div className="flex items-start justify-between">
             <div>
               <div className="text-xs text-gray-600 font-medium uppercase tracking-wide">Total Revenue</div>
-              <div className="text-3xl font-bold text-gray-900 mt-2">${totalRevenue.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-gray-900 mt-2">{totalRevenue.toFixed(2)} VND</div>
               <div className="flex items-center gap-1 mt-2 text-sm font-medium text-green-600">
                 <TrendingUp className="w-4 h-4" />
                 <span>+12.5% vs last period</span>
@@ -472,7 +472,7 @@ export default function ReportsSection() {
           <div className="flex items-start justify-between">
             <div>
               <div className="text-xs text-gray-600 font-medium uppercase tracking-wide">Avg Order Value</div>
-              <div className="text-3xl font-bold text-gray-900 mt-2">${avgOrderValue.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-gray-900 mt-2">{avgOrderValue.toFixed(2)} VND</div>
               <div className="flex items-center gap-1 mt-2 text-sm font-medium text-purple-600">
                 <TrendingUp className="w-4 h-4" />
                 <span>+5.7% vs last period</span>
@@ -516,7 +516,7 @@ export default function ReportsSection() {
                         className="h-full bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-end pr-3 transition-all"
                         style={{ width: `${(day.sales / maxSales) * 100}%` }}
                       >
-                        <span className="text-xs font-bold text-white">${day.sales}</span>
+                        <span className="text-xs font-bold text-white">{day.sales} VND</span>
                       </div>
                     </div>
                     <div className="text-sm font-medium text-gray-600 w-16">{day.orders} orders</div>
@@ -589,7 +589,7 @@ export default function ReportsSection() {
                     {item.orders}
                   </td>
                   <td className="py-3 px-4 text-right font-bold text-green-600 whitespace-nowrap">
-                    ${item.revenue.toFixed(2)}
+                    {item.revenue.toFixed(2)} VND
                   </td>
                   <td className="py-3 px-4 text-right">
                     <span className="inline-flex items-center gap-1 text-sm font-medium text-green-600">

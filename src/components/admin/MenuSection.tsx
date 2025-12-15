@@ -348,7 +348,7 @@ export default function MenuSection() {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">{item.categoryName}</td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                        ${item.price.toFixed(2)}
+                        {item.price.toFixed(2)} VND
                       </td>
                       <td className="px-6 py-4">
                         <button
@@ -532,7 +532,7 @@ function MenuItemModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Price ($) *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Price (VND) *</label>
             <input
               type="number"
               required

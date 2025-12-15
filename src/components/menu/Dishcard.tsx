@@ -78,7 +78,7 @@ export default function DishCard({id, image, name, description, price, categorie
                 <div className="text-justify text-sm">{description}</div>
             </div>
             <div className="flex items-center justify-between w-full h-1/6 px-3 bg-[#F4F5ED]">
-                <div className="w-fit text-lg">Price: {price}$</div>
+                <div className="w-fit text-lg">Price: {price} VND</div>
                 <div className="flex flex-row gap-2.5 w-fit">
                     <button 
                     onClick={inc}

@@ -390,7 +390,7 @@ export default function OrdersSection() {
                         </div>
                       </td>
                       <td className="px-6 py-4 font-semibold text-gray-900">
-                        ${order.totalAmount.toFixed(2)}
+                        {order.totalAmount.toFixed(2)} VND
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
@@ -515,8 +515,8 @@ function OrderDetailModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-8">
-        <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-4 flex items-center justify-between rounded-t-2xl">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-8 max-h-[calc(100vh-2rem)] flex flex-col">
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
             <h3 className="text-xl font-bold">Order Details</h3>
             <p className="text-sm text-white/90 mt-1">Order ID: #{order.id}</p>
@@ -526,7 +526,7 @@ function OrderDetailModal({
           </button>
         </div>
         
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Order Status & Time */}
           <div className="flex items-center justify-between pb-4 border-b">
             <div>
@@ -609,7 +609,7 @@ function OrderDetailModal({
                       </div>
                       <div className="flex-1">
                         <span className="font-medium text-gray-900 block">{item.menuItemName}</span>
-                        <span className="text-sm text-gray-600">${item.unitPrice.toFixed(2)} each</span>
+                        <span className="text-sm text-gray-600">{item.unitPrice.toFixed(2)} VND each</span>
                         {item.specialInstructions && (
                           <div className="mt-2 text-sm text-gray-600 bg-white rounded px-3 py-2 border border-gray-200">
                             <span className="font-medium">Note:</span> {item.specialInstructions}
@@ -617,7 +617,7 @@ function OrderDetailModal({
                         )}
                       </div>
                     </div>
-                    <span className="font-semibold text-gray-900 ml-4">${item.subtotal.toFixed(2)}</span>
+                    <span className="font-semibold text-gray-900 ml-4">{item.subtotal.toFixed(2)} VND</span>
                   </div>
                 </div>
               ))}
@@ -633,21 +633,21 @@ function OrderDetailModal({
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Subtotal:</span>
-                <span className="font-medium">${order.subtotal.toFixed(2)}</span>
+                <span className="font-medium">{order.subtotal.toFixed(2)} VND</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Tax:</span>
-                <span className="font-medium">${order.taxAmount.toFixed(2)}</span>
+                <span className="font-medium">{order.taxAmount.toFixed(2)} VND</span>
               </div>
               {order.deliveryFee > 0 && (
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Delivery Fee:</span>
-                  <span className="font-medium">${order.deliveryFee.toFixed(2)}</span>
+                  <span className="font-medium">{order.deliveryFee.toFixed(2)} VND</span>
                 </div>
               )}
               <div className="pt-3 border-t-2 border-gray-200 flex justify-between items-center">
                 <span className="font-bold text-lg text-gray-900">Total Amount:</span>
-                <span className="font-bold text-2xl text-orange-600">${order.totalAmount.toFixed(2)}</span>
+                <span className="font-bold text-2xl text-orange-600">{order.totalAmount.toFixed(2)} VND</span>
               </div>
             </div>
           </div>

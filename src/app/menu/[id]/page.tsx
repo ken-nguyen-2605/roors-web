@@ -348,7 +348,7 @@ function DishDetailContent({ dishId }: { dishId: number }) {
                 <div className="text-center">
                   <p className="text-gray-600 text-sm mb-1">Price</p>
                   <p className="text-2xl font-bold text-[#D4AF37]">
-                    ${dish.price.toFixed(2)}
+                    {dish.price.toFixed(2)} VND
                   </p>
                 </div>
                 <div className="text-center border-l border-r border-gray-200">
@@ -391,7 +391,7 @@ function DishDetailContent({ dishId }: { dishId: number }) {
                   onClick={addToCart}
                   className="flex-1 py-4 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-colors duration-300 font-bold text-lg shadow-lg"
                 >
-                  Add to Cart - ${calculatePrice()}
+                  Add to Cart - {calculatePrice()} VND
                 </button>
                 <button className="w-14 h-14 bg-white border-2 border-[#D4AF37] rounded-lg hover:bg-gray-50 transition-colors text-2xl">
                   ♥
@@ -550,7 +550,7 @@ function DishDetailContent({ dishId }: { dishId: number }) {
                           {item.description}
                         </p>
                         <p className="text-[#D4AF37] font-bold">
-                          ${item.price.toFixed(2)}
+                          {item.price.toFixed(2)} VND
                         </p>
                       </div>
                     </div>
