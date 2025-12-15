@@ -209,6 +209,23 @@ export default function OrderHistory() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  // Simple in-page notification UI instead of browser alerts
+  const [notification, setNotification] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
+
+  const showNotification = (
+    message: string,
+    type: "success" | "error" | "info" = "info"
+  ) => {
+    setNotification({ message, type });
+    // Auto-hide after 4 seconds
+    setTimeout(() => {
+      setNotification(null);
+    }, 4000);
+  };
+
   const [cancelModal, setCancelModal] = useState<{
     isOpen: boolean;
     orderId: number | string | null;
@@ -326,7 +343,7 @@ export default function OrderHistory() {
 
 
     if (!res?.success) {
-      alert(res?.message || "Failed to cancel order");
+      showNotification(res?.message || "Failed to cancel order", "error");
     } else {
       setOrdersList((prev) =>
         prev.map((o) =>
@@ -350,8 +367,6 @@ export default function OrderHistory() {
         if (item.menuItemId) {
           const menuItemId = Number(item.menuItemId);
           const quantity = item.quantity;
-
-          // Set quantity for this item in the cart
           setQuantity(menuItemId, quantity);
           itemsAdded++;
         } else {
@@ -360,7 +375,10 @@ export default function OrderHistory() {
       }
 
       if (itemsAdded === 0) {
-        alert("Unable to add items to cart. Some items may not be available.");
+        showNotification(
+          "Unable to add items to cart. Some items may not be available.",
+          "error"
+        );
         return;
       }
 
@@ -368,7 +386,7 @@ export default function OrderHistory() {
       router.push("/checkout_page");
     } catch (error) {
       console.error("Error adding items to cart:", error);
-      alert("An error occurred while adding items to cart");
+      showNotification("An error occurred while adding items to cart", "error");
     }
   };
 
@@ -376,7 +394,7 @@ export default function OrderHistory() {
   const handleRating = async (orderId: number | string, rating: number, feedback: string) => {
     const res = await orderService.submitOrderRating(String(orderId), rating, feedback);
     if (!res?.success) {
-      alert(res?.message || "Failed to save rating");
+      showNotification(res?.message || "Failed to save rating", "error");
       return;
     }
     
@@ -388,8 +406,8 @@ export default function OrderHistory() {
           : o
       )
     );
-    
-    alert("Thank you for your rating!");
+
+    showNotification("Thank you for your rating!", "success");
   };
 
   // Open detailed review modal for per-dish ratings
@@ -442,15 +460,26 @@ export default function OrderHistory() {
       if (failed.length > 0) {
         console.error("Failed ratings:", failed);
         const errorMessages = failed.map(f => (f as any).message || 'Unknown error').join(', ');
-        alert(`Some ratings failed to submit: ${errorMessages}`);
+        showNotification(
+          `Some ratings failed to submit: ${errorMessages}`,
+          "error"
+        );
       } else {
         const ratedCount = finalList.filter(item => item.stars > 0).length;
         const totalCount = reviewModal.order!.items.length;
         
         if (ratedCount === totalCount) {
-          alert("Thank you for your detailed feedback on all items!");
+          showNotification(
+            "Thank you for your detailed feedback on all items!",
+            "success"
+          );
         } else {
-          alert(`Thank you! Your feedback for ${ratedCount} item${ratedCount > 1 ? 's' : ''} has been saved.`);
+          showNotification(
+            `Thank you! Your feedback for ${ratedCount} item${
+              ratedCount > 1 ? "s" : ""
+            } has been saved.`,
+            "success"
+          );
         }
         
         // Reload orders to get updated ratings
@@ -481,6 +510,41 @@ export default function OrderHistory() {
   // UI Rendering
   return (
     <section className="relative">
+      {/* Notification Toast */}
+      {notification && (
+        <div className="fixed top-24 right-6 z-50">
+          <div
+            className={`min-w-[260px] max-w-sm px-4 py-3 rounded shadow-lg border text-sm ${
+              notification.type === "success"
+                ? "bg-green-50 border-green-500 text-green-800"
+                : notification.type === "error"
+                ? "bg-red-50 border-red-500 text-red-800"
+                : "bg-gray-50 border-gray-400 text-gray-800"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <Icon
+                icon={
+                  notification.type === "success"
+                    ? "mdi:check-circle-outline"
+                    : notification.type === "error"
+                    ? "mdi:alert-circle-outline"
+                    : "mdi:information-outline"
+                }
+                className="mt-0.5 text-lg"
+              />
+              <div className="flex-1 text-left">{notification.message}</div>
+              <button
+                onClick={() => setNotification(null)}
+                className="ml-2 text-xs opacity-60 hover:opacity-100"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Cancel Confirmation Modal */}
       <CancelModal
         isOpen={cancelModal.isOpen}
