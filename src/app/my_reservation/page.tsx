@@ -58,6 +58,8 @@ export default function ReservationHistory() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Fetch reservations on component mount
   useEffect(() => {
@@ -118,6 +120,17 @@ export default function ReservationHistory() {
       ? reservations
       : reservations.filter((res) => res.status === activeFilter);
 
+  // Reset to first page when filter changes or data updates
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, reservations.length]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredReservations.length / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedReservations = filteredReservations.slice(startIndex, endIndex);
+
   // Categorize reservations for quick filter buttons
   const confirmedReservations = reservations.filter(
     (res) => res.status === "CONFIRMED"
@@ -177,11 +190,6 @@ export default function ReservationHistory() {
   // Handle modify reservation
   const handleModifyReservation = (reservationId: number) => {
     router.push(`/reservations/modify/${reservationId}`);
-  };
-
-  // Handle book again
-  const handleBookAgain = () => {
-    router.push("/reservations/new");
   };
 
   // Check if reservation can be modified/cancelled (only CONFIRMED reservations)
@@ -386,7 +394,7 @@ export default function ReservationHistory() {
         {/* Reservations List */}
         {!loading && !error && filteredReservations.length > 0 && (
           <div className="flex flex-col gap-6 mx-auto">
-            {filteredReservations.map((reservation, i) => (
+            {paginatedReservations.map((reservation, i) => (
               <div
                 key={reservation.id}
                 className="relative flex flex-col w-[1100px] shadow-xl px-8 py-6 rounded-lg"
@@ -543,42 +551,57 @@ export default function ReservationHistory() {
                   </div>
 
                   {/* Action Buttons */}
-                  {reservation.status === "CONFIRMED" && (
+                  {reservation.status === "CONFIRMED" && canCancelReservation(reservation) && (
                     <div className="flex flex-col gap-2">
-                      {canModifyReservation(reservation) && (
-                        <button
-                          onClick={() => handleModifyReservation(reservation.id)}
-                          className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300"
-                        >
-                          Modify
-                        </button>
-                      )}
-                      {canCancelReservation(reservation) && (
-                        <button
-                          onClick={() => handleCancelReservation(reservation.id)}
-                          className={`px-6 py-2 border-2 transition duration-300 ${
-                            i % cardColors.length === 2
-                              ? "border-white hover:bg-white hover:text-black"
-                              : "border-black hover:bg-black hover:text-white"
-                          }`}
-                        >
-                          Cancel
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleCancelReservation(reservation.id)}
+                        className={`px-6 py-2 border-2 transition duration-300 ${
+                          i % cardColors.length === 2
+                            ? "border-white hover:bg-white hover:text-black"
+                            : "border-black hover:bg-black hover:text-white"
+                        }`}
+                      >
+                        Cancel
+                      </button>
                     </div>
                   )}
 
-                  {reservation.status === "ARRIVED" && (
-                    <button
-                      onClick={handleBookAgain}
-                      className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300"
-                    >
-                      Book Again
-                    </button>
-                  )}
+                  {/* No "Book Again" button for arrived reservations */}
                 </div>
               </div>
             ))}
+            {/* Pagination Controls */}
+            {filteredReservations.length > itemsPerPage && (
+              <div className="flex items-center justify-center gap-4 mt-6">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 border-2 transition duration-300 ${
+                    currentPage === 1
+                      ? "border-gray-300 text-gray-300 cursor-not-allowed"
+                      : "border-black hover:bg-black hover:text-white"
+                  }`}
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-700">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                  className={`px-4 py-2 border-2 transition duration-300 ${
+                    currentPage === totalPages
+                      ? "border-gray-300 text-gray-300 cursor-not-allowed"
+                      : "border-black hover:bg-black hover:text-white"
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -611,12 +634,6 @@ export default function ReservationHistory() {
                 : ""}{" "}
               reservations found
             </p>
-            <button
-              onClick={handleBookAgain}
-              className="px-8 py-3 bg-black text-white hover:bg-gray-800 transition duration-300 mt-4"
-            >
-              Make a Reservation
-            </button>
           </div>
         )}
       </section>

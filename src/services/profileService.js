@@ -33,6 +33,12 @@ class ProfileService {
     });
   }
 
+  disableAccount(userId) {
+    // Customer endpoint: disables the currently authenticated user's account (soft delete)
+    // Note: userId is not required by backend; it uses the authenticated user
+    return apiService.post('/api/users/disable', {});
+  }
+
   getLikedDishes(userId) {
     // Backend endpoint: GET /api/menu/likes (returns current authenticated user's liked items)
     // Note: userId parameter is ignored - backend uses authenticated user from token

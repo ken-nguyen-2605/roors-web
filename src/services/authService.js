@@ -52,15 +52,25 @@ class AuthService {
             : "";
           document.cookie = `authToken=${jwtToken}; path=/${expiry}`;
 
+          // Prefer user details coming directly from backend response (LoginResponse)
+          const backendRole = response?.role;
+          const backendUsername = response?.username;
+          const backendEmail = response?.email;
+
+          // Fallback to decoding token if needed (for legacy tokens)
           const decodedToken = this.parseJwt(jwtToken);
-          if (decodedToken) {
-            const info = {
-              username: decodedToken.username,
-              role: decodedToken.role,
-              id: decodedToken.sub,
-            };
-            localStorage.setItem("userInfo", JSON.stringify(info));
-          }
+          const info = {
+            username:
+              backendUsername ||
+              decodedToken?.username ||
+              decodedToken?.sub ||
+              username,
+            email: backendEmail || decodedToken?.email || null,
+            role: (backendRole || decodedToken?.role || "").toUpperCase(),
+            id: decodedToken?.sub || null,
+          };
+
+          localStorage.setItem("userInfo", JSON.stringify(info));
 
           if (rememberMe) {
             localStorage.setItem("rememberMe", "true");
@@ -139,6 +149,27 @@ class AuthService {
 			};
 		}
 	}
+
+  // Change password (authenticated user: old + new password)
+  async changePassword(oldPassword, newPassword) {
+    try {
+      const response = await apiService.post("/api/auth/change-password", {
+        oldPassword,
+        newPassword,
+      });
+      return {
+        success: true,
+        data: response,
+        message: response?.message || "Password changed successfully",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Failed to change password",
+        status: error.status,
+      };
+    }
+  }
 
 	// Resend verification email
 	async resendVerification(email) {

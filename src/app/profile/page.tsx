@@ -4,6 +4,7 @@ import SlideBackground from "@/utils/SlideBackground";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from 'react';
+import { useRouter } from "next/navigation";
 import profileService from "@/services/profileService";
 
 import { Inria_Serif } from 'next/font/google';
@@ -170,6 +171,7 @@ const getStoredUserId = (): number | null => {
 };
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'profile' | 'liked'>('profile');
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState<CustomerProfile>(fallbackProfileData);
@@ -293,6 +295,38 @@ export default function ProfilePage() {
     } catch (error: any) {
       console.error('Failed to remove liked dish:', error);
       alert(error?.message || 'Failed to remove liked dish.');
+    }
+  };
+
+  const handleChangePassword = () => {
+    router.push('/auth/change-password');
+  };
+
+  const handleDisableAccount = async () => {
+    if (!userId) {
+      alert('Unable to find your account information.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'Are you sure you want to disable your account? You will not be able to log in until it is re-enabled by an administrator.'
+    );
+    if (!confirmed) return;
+
+    try {
+      await profileService.disableAccount(userId);
+      alert('Your account has been disabled. You will be logged out.');
+
+      // Clear local auth/session data
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userInfo');
+      }
+
+      router.push('/auth/login');
+    } catch (error: any) {
+      console.error('Failed to disable account:', error);
+      alert(error?.message || 'Failed to disable account. Please try again later.');
     }
   };
 
@@ -428,20 +462,13 @@ export default function ProfilePage() {
                   Personal Information
                 </h2>
 
-                {/* Name Field */}
+                {/* Name Field (Read-only) */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                  <label className="text-gray-700 font-semibold">Full Name</label>
+                  <label className="text-gray-700 font-semibold">User Name</label>
                   <div className="md:col-span-2">
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={profileData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-[#D4AF37] focus:outline-none transition-colors"
-                      />
-                    ) : (
-                      <p className="px-4 py-3 bg-gray-50 rounded-lg">{profileData.name}</p>
-                    )}
+                    <p className="px-4 py-3 bg-gray-100 rounded-lg text-gray-700">
+                      {profileData.name}
+                    </p>
                   </div>
                 </div>
 
@@ -509,14 +536,17 @@ export default function ProfilePage() {
                 <div className="pt-6 mt-6 border-t-2 border-gray-200">
                   <h3 className="text-lg font-semibold mb-4">Account Actions</h3>
                   <div className="flex flex-wrap gap-4">
-                    <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 font-semibold">
+                    <button
+                      onClick={handleChangePassword}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 font-semibold"
+                    >
                       Change Password
                     </button>
-                    <button className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-300 font-semibold">
-                      Order History
-                    </button>
-                    <button className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-300 font-semibold">
-                      Delete Account
+                    <button
+                      onClick={handleDisableAccount}
+                      className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-300 font-semibold"
+                    >
+                      Disable Account
                     </button>
                   </div>
                 </div>

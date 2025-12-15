@@ -1,8 +1,9 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useEffect } from 'react';
-import authService from '@/services/authService';
-import { useRouter } from 'next/navigation';
+import { createContext, useContext, useState, useEffect } from "react";
+import authService from "@/services/authService";
+import { useRouter } from "next/navigation";
+import { useNoteStore } from "@/stores/useNoteStore";
 
 interface AuthContextType {
   user: any;
@@ -12,7 +13,11 @@ interface AuthContextType {
     username: string, 
     password: string, 
     rememberMe?: boolean
-  ) => Promise<any>;
+  ) => Promise<{
+    success: boolean;
+    message: string;
+    role?: string | null;
+  }>;
   register: (
     username: string, 
     email: string, 
@@ -37,7 +42,7 @@ type AuthProviderProps = {
 };
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -64,17 +69,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const login = async (username: string, password: string, rememberMe = false) => {
+  const login = async (
+    username: string, 
+    password: string, 
+    rememberMe = false
+  ): Promise<{ success: boolean; message: string; role?: string | null }> => {
     try {
       const result = await authService.login(username, password, rememberMe);
       
       if (result.success) {
         const currentUser = authService.getCurrentUser();
         setUser(currentUser);
-        return { success: true, message: result.message };
+        return { 
+          success: true, 
+          message: result.message,
+          role: currentUser?.role ?? null,
+        };
       }
       
-      return { success: false, message: result.message };
+      return { 
+        success: false, 
+        message: result.message,
+        role: null,
+      };
     } catch (error: any) {
       return { 
         success: false, 
@@ -97,8 +114,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = () => {
     authService.logout();
+
+    // Clear persisted note quantities when user logs out
+    useNoteStore.getState().reset();
+
     setUser(null);
-    router.push('/auth/login');
+    router.push("/auth/login");
   };
 
   const value: AuthContextType = {

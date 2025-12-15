@@ -138,8 +138,16 @@ export default function LoginPage() {
 
       if (result.success) {
         setApiSuccess(result.message);
+        const role = (result.role || '').toUpperCase();
+
+        // Redirect based on role
+        const targetPath =
+          role === 'STAFF' || role === 'MANAGER'
+            ? '/admin'
+            : '/';
+
         setTimeout(() => {
-          router.push('/');
+          router.push(targetPath);
         }, 1000);
       } else {
         setApiError(result.message || 'Login failed. Please try again.');

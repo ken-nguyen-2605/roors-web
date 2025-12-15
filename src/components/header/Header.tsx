@@ -57,7 +57,7 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
                     <Link href="/reservation" className="hover:text-yellow-400 transition-colors">Reservation</Link>
                 </div>
                 
-                <Icon icon="mdi:bell" className="w-[28px] h-[32px] cursor-pointer hover:text-yellow-400 transition-colors"/>
+                {/* <Icon icon="mdi:bell" className="w-[28px] h-[32px] cursor-pointer hover:text-yellow-400 transition-colors"/> */}
                 
                 {/* Profile Dropdown */}
                 <div className="relative flex items-center" ref={profileRef}>

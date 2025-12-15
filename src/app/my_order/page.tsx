@@ -203,6 +203,8 @@ export default function OrderHistory() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [expandedOrder, setExpandedOrder] = useState<number | string | null>(null);
   const [ordersList, setOrdersList] = useState<Order[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const [cancelModal, setCancelModal] = useState<{
     isOpen: boolean;
@@ -290,6 +292,17 @@ export default function OrderHistory() {
     if (activeFilter === "all") return ordersList;
     return ordersList.filter((order) => order.status === activeFilter);
   }, [ordersList, activeFilter]);
+
+  // Reset to first page when filter or data changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, filteredOrders.length]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
   const toggleOrderDetails = (orderId: number | string) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
@@ -550,7 +563,7 @@ export default function OrderHistory() {
           {/* Orders List */}
           {filteredOrders.length > 0 ? (
             <div className="flex flex-col gap-6 mx-auto">
-              {filteredOrders.map((order, i) => {
+              {paginatedOrders.map((order, i) => {
                 const isLightBackground = i % cardColors.length !== 2;
                 return (
                   <div
@@ -816,6 +829,38 @@ export default function OrderHistory() {
                   </div>
                 );
               })}
+              {/* Pagination Controls */}
+              {filteredOrders.length > itemsPerPage && (
+                <div className="flex items-center justify-center gap-4 mt-6">
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className={`px-4 py-2 border-2 transition duration-300 ${
+                      currentPage === 1
+                        ? "border-gray-300 text-gray-300 cursor-not-allowed"
+                        : "border-black hover:bg-black hover:text-white"
+                    }`}
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-gray-700">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                    }
+                    disabled={currentPage === totalPages}
+                    className={`px-4 py-2 border-2 transition duration-300 ${
+                      currentPage === totalPages
+                        ? "border-gray-300 text-gray-300 cursor-not-allowed"
+                        : "border-black hover:bg-black hover:text-white"
+                    }`}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             // Empty State

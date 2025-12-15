@@ -370,10 +370,10 @@ export default function Menu() {
                             <button
                                 onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
                                 disabled={currentPage === 0}
-                                className={`px-4 py-2 border-2 border-black rounded-lg transition duration-200 ${
+                                className={`px-4 py-2 border-2 transition duration-300 ${
                                     currentPage === 0
-                                        ? "opacity-50 cursor-not-allowed bg-gray-200"
-                                        : "bg-white hover:bg-black hover:text-white cursor-pointer"
+                                        ? "border-gray-300 text-gray-300 cursor-not-allowed"
+                                        : "border-black hover:bg-black hover:text-white"
                                 }`}
                             >
                                 Previous
@@ -411,10 +411,10 @@ export default function Menu() {
                             <button
                                 onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
                                 disabled={currentPage >= totalPages - 1}
-                                className={`px-4 py-2 border-2 border-black rounded-lg transition duration-200 ${
+                                className={`px-4 py-2 border-2 transition duration-300 ${
                                     currentPage >= totalPages - 1
-                                        ? "opacity-50 cursor-not-allowed bg-gray-200"
-                                        : "bg-white hover:bg-black hover:text-white cursor-pointer"
+                                        ? "border-gray-300 text-gray-300 cursor-not-allowed"
+                                        : "border-black hover:bg-black hover:text-white"
                                 }`}
                             >
                                 Next
