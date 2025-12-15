@@ -190,7 +190,7 @@ export default function EmailVerifiedPage() {
               Create New Account
             </Link>
 
-            <Link href="/signin" className={`block ${styles.content.secondaryButton}`}>
+            <Link href="/auth/login" className={`block ${styles.content.secondaryButton}`}>
               Back to Sign In
             </Link>
 

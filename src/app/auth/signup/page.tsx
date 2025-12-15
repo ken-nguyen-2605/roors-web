@@ -323,7 +323,7 @@ export default function SignUpPage() {
                     {/* Sign In Link */}
                     <p className={styles.form.textCenter}>
                       Have an account?{' '}
-                      <Link href="/signin" className={styles.form.linkBold}>
+                      <Link href="/auth/login" className={styles.form.linkBold}>
                         Sign In
                       </Link>
                     </p>

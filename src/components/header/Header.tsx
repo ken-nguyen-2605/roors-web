@@ -1,8 +1,9 @@
-"use client";
+'use client';
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useScrollTrigger } from "@/utils/ScrollState";
+import { useAuth } from "@/contexts/AuthContext"; // ✅ Import the hook
 
 import { Italianno } from 'next/font/google';
 const italianno = Italianno({
@@ -13,11 +14,13 @@ const italianno = Italianno({
 import { Icon } from "@iconify/react";
 import { FaUserCircle } from "react-icons/fa";
 
-
 export default function Header({tranYdistance}: {tranYdistance: number}) {
     const scrolled = useScrollTrigger(tranYdistance);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const profileRef = useRef<HTMLDivElement>(null);
+
+    // ✅ Use the AuthContext instead of hardcoded value
+    const { user, isAuthenticated, logout, loading } = useAuth();
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -31,8 +34,11 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Mock user state - replace with your actual auth state
-    const isLoggedIn = true; // Change this based on your auth logic
+    // ✅ Handle logout
+    const handleLogout = () => {
+        logout();
+        setIsProfileOpen(false);
+    };
 
     return (
         <div className={`fixed flex items-center justify-between h-[58px] w-full px-[42px] golden z-20 transition-[background-color] duration-300 ease-in-out ${scrolled ? "bg-black" : "backdrop-blur-lg"}`}>
@@ -57,9 +63,20 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
                     {/* Dropdown Menu */}
                     {isProfileOpen && (
                         <div className="absolute top-9 right-0 mt-2 w-48 bg-black border border-yellow-600/30 rounded-lg shadow-lg overflow-hidden">
-                            {isLoggedIn ? (
-                                // Logged in menu
+                            {/* ✅ Show loading state */}
+                            {loading ? (
+                                <div className="px-4 py-3 text-center">
+                                    <span className="text-gray-400">Loading...</span>
+                                </div>
+                            ) : isAuthenticated ? (
+                                // ✅ Logged in menu
                                 <>
+                                    {/* ✅ Show user info */}
+                                    <div className="px-4 py-3 border-b border-yellow-600/20 bg-yellow-600/10">
+                                        <p className="font-semibold">{user?.username}</p>
+                                        <p className="text-xs text-gray-400">{user?.role}</p>
+                                    </div>
+                                    
                                     <Link 
                                         href="/profile"
                                         className="block px-4 py-3 hover:bg-yellow-600/20 transition-colors border-b border-yellow-600/20"
@@ -90,12 +107,10 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
                                             <span>My Reservations</span>
                                         </div>
                                     </Link>
+                                    {/* ✅ Logout button now works! */}
                                     <button 
                                         className="w-full text-left px-4 py-3 hover:bg-red-600/20 transition-colors text-red-400"
-                                        onClick={() => {
-                                            // Add your logout logic here
-                                            setIsProfileOpen(false);
-                                        }}
+                                        onClick={handleLogout}
                                     >
                                         <div className="flex items-center gap-3">
                                             <Icon icon="mdi:logout" className="w-5 h-5" />
@@ -107,7 +122,7 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
                                 // Not logged in menu
                                 <>
                                     <Link 
-                                        href="/log_in"
+                                        href="/auth/login"
                                         className="block px-4 py-3 hover:bg-yellow-600/20 transition-colors border-b border-yellow-600/20"
                                         onClick={() => setIsProfileOpen(false)}
                                     >
@@ -117,7 +132,7 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
                                         </div>
                                     </Link>
                                     <Link 
-                                        href="/sign_up"
+                                        href="/auth/signup"
                                         className="block px-4 py-3 hover:bg-yellow-600/20 transition-colors"
                                         onClick={() => setIsProfileOpen(false)}
                                     >
@@ -133,5 +148,5 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
                 </div>
             </div>
         </div>
-    )
+    );
 }

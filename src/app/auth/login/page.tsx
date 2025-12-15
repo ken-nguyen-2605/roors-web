@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Star from "@/components/decorativeComponents/Star";
 import Line from "@/components/decorativeComponents/Line";
-import authService from '@/services/authService';
+import { useAuth } from '@/contexts/AuthContext'; // ✅ Add this
 
 const styles = {
   page: {
@@ -71,6 +71,8 @@ const styles = {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth(); // ✅ Use the context's login function
+  
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -122,7 +124,8 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const result = await authService.login(
+      // ✅ Use context's login instead of authService directly
+      const result = await login(
         formData.username,
         formData.password,
         formData.rememberMe
@@ -130,19 +133,11 @@ export default function LoginPage() {
 
       if (result.success) {
         setApiSuccess(result.message);
-        // Redirect to home or dashboard after successful login
         setTimeout(() => {
           router.push('/');
         }, 1000);
       } else {
-        // Handle specific error cases
-        if (result.status === 403) {
-          setApiError('Email not verified. Please check your email.');
-        } else if (result.status === 401) {
-          setApiError('Invalid username or password');
-        } else {
-          setApiError(result.message || 'Login failed. Please try again.');
-        }
+        setApiError(result.message || 'Login failed. Please try again.');
       }
     } catch (error) {
       setApiError('An unexpected error occurred. Please try again.');

@@ -76,7 +76,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     authService.logout();
     setUser(null);
-    router.push('/signin');
+    router.push('/auth/login');
   };
 
   const value = {

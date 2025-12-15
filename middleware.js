@@ -12,7 +12,7 @@ const protectedRoutes = [
 ];
 
 // Add routes that should redirect to home if already authenticated
-const authRoutes = ['/signin', '/signup'];
+const authRoutes = ['/auth/login', '/auth/signup'];
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
