@@ -597,32 +597,18 @@ function MenuItemModal({
                 }}
                 className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-orange-50 file:text-orange-600 hover:file:bg-orange-100"
               />
-              <p className="text-xs text-gray-500">We will send the image as a base64 data URL, no extra API needed.</p>
-              <div className="flex items-center gap-3">
-                {(imagePreview || formData.imageUrl) && (
-                  <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
-                    <img
-                      src={imagePreview || formData.imageUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                <div className="flex-1">
-                  <input
-                    type="url"
-                    value={formData.imageUrl}
-                    onChange={(e) => {
-                      setFormData({ ...formData, imageUrl: e.target.value });
-                      setImagePreview(e.target.value || null);
-                      setImageFile(null);
-                    }}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    placeholder="https://example.com/image.jpg"
+              <p className="text-xs text-gray-500">
+                Upload an image file. It will be sent as a base64 data URL to the server.
+              </p>
+              {(imagePreview || formData.imageUrl) && (
+                <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                  <img
+                    src={imagePreview || formData.imageUrl}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Or paste an image URL.</p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 

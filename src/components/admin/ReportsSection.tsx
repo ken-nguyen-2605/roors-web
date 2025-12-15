@@ -1,8 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
-import { TrendingUp, DollarSign, ShoppingBag, Users, Calendar, Download, Filter, Clock } from 'lucide-react';
+import {
+  TrendingUp,
+  DollarSign,
+  ShoppingBag,
+  Users,
+  Calendar,
+  Download,
+  Filter,
+  Clock,
+} from 'lucide-react';
 import adminStatisticsService from '@/services/adminStatisticsService';
+import reservationService from '@/services/reservationService';
 
 // Match backend DTOs from com.josephken.roors.admin.dto
 type OrderStatsByDateDto = {
@@ -33,6 +43,8 @@ type DashboardStatsDto = {
   }[];
 };
 
+const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 export default function ReportsSection() {
   const [dateRange, setDateRange] = useState('last7days');
   const [reportType, setReportType] = useState('overview');
@@ -52,12 +64,15 @@ export default function ReportsSection() {
     { category: string; percentage: number; revenue: number }[]
   >([]);
 
-  const [peakHoursData, setPeakHoursData] = useState<
-    { hour: string; count: number }[]
-  >([]);
+  // Reservations-by-weekday data (real reservations, not orders)
+  const [reservationsByWeekday, setReservationsByWeekday] = useState<
+    { day: string; reservations: number }[]
+  >(() => weekdayLabels.map((d) => ({ day: d, reservations: 0 })));
+  const [maxWeekdayReservations, setMaxWeekdayReservations] = useState(0);
 
   // Map your UI dateRange keys to backend "days" parameter.
   const daysForRange = useMemo(() => {
+    const now = new Date();
     switch (dateRange) {
       case 'today':
         return 1;
@@ -65,10 +80,19 @@ export default function ReportsSection() {
         return 7;
       case 'last30days':
         return 30;
-      case 'thismonth':
-        return 30;
-      case 'lastmonth':
-        return 60;
+      case 'thismonth': {
+        // Calculate days from start of current month to today
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const diffTime = now.getTime() - startOfMonth.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays || 1; // At least 1 day
+      }
+      case 'lastmonth': {
+        // Calculate days from today back to the start of last month
+        const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const daysFromTodayToLastMonthStart = Math.ceil((now.getTime() - firstDayLastMonth.getTime()) / (1000 * 60 * 60 * 24));
+        return daysFromTodayToLastMonthStart;
+      }
       default:
         return 30;
     }
@@ -93,12 +117,47 @@ export default function ReportsSection() {
 
       const stats = result.data as DashboardStatsDto;
 
-      // Top-level aggregates from backend
-      setTotalRevenue(Number(stats.totalRevenue ?? 0));
-      setOrdersCount(Number(stats.totalOrders ?? 0));
+      // revenueOverTime: List<OrderStatsByDate> from backend (already filtered by date range)
+      let revenueOverTime = stats.revenueOverTime || [];
+      
+      // For "thismonth", filter to only include current month's data
+      if (dateRange === 'thismonth') {
+        const now = new Date();
+        const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDayThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        revenueOverTime = revenueOverTime.filter((entry) => {
+          const entryDate = new Date(entry.date);
+          return entryDate >= firstDayThisMonth && entryDate <= lastDayThisMonth;
+        });
+      }
+      
+      // For "lastmonth", filter to only include last month's data (exclude current month)
+      if (dateRange === 'lastmonth') {
+        const now = new Date();
+        const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        
+        revenueOverTime = revenueOverTime.filter((entry) => {
+          const entryDate = new Date(entry.date);
+          return entryDate >= firstDayLastMonth && entryDate <= lastDayLastMonth;
+        });
+      }
+      
+      // Calculate metrics from the filtered revenueOverTime data to ensure they match the selected date range
+      const calculatedRevenue = revenueOverTime.reduce(
+        (sum, entry) => sum + Number(entry.revenue ?? 0),
+        0
+      );
+      const calculatedOrders = revenueOverTime.reduce(
+        (sum, entry) => sum + Number(entry.orderCount ?? 0),
+        0
+      );
 
-      // revenueOverTime: List<OrderStatsByDate> from backend
-      const revenueOverTime = stats.revenueOverTime || [];
+      // Use calculated values instead of backend aggregates (which aren't filtered)
+      setTotalRevenue(calculatedRevenue);
+      setOrdersCount(calculatedOrders);
+
       const transformedSales = revenueOverTime.map((entry) => ({
         day: entry.date,
         sales: Number(entry.revenue ?? 0),
@@ -170,26 +229,85 @@ export default function ReportsSection() {
         setCategoryBreakdown(categoryData);
       }
 
-      // Peak hours are not directly provided; derive simple pseudo data from revenueOverTime
-      const peakData =
-        revenueOverTime.length > 0
-          ? revenueOverTime.map((entry) => ({
-              hour: entry.date,
-              count: Number(entry.orderCount ?? 0),
-            }))
-          : [];
-
-      setPeakHoursData(peakData);
-
       setLoading(false);
     };
 
     fetchStats();
   }, [daysForRange, reportType]);
 
-  const maxPeak = peakHoursData.length
-    ? Math.max(...peakHoursData.map((d) => d.count))
-    : 0;
+  // Fetch and aggregate reservations for "Reservations by Day of Week" chart
+  useEffect(() => {
+    if (reportType !== 'overview') return;
+
+    const fetchReservationsStats = async () => {
+      try {
+        const result = await reservationService.getAllReservations();
+        if (!result.success || !Array.isArray(result.data)) {
+          // If API responds in a different envelope, try `result.data.content` or bail gracefully
+          const rawList = Array.isArray(result.data?.content)
+            ? result.data.content
+            : [];
+
+          if (!rawList.length) {
+            setReservationsByWeekday(
+              weekdayLabels.map((d) => ({ day: d, reservations: 0 })),
+            );
+            setMaxWeekdayReservations(0);
+            return;
+          }
+        }
+
+        const reservationsArray: any[] = Array.isArray(result.data)
+          ? result.data
+          : Array.isArray(result.data?.content)
+          ? result.data.content
+          : [];
+
+        // Prepare buckets Sun–Sat
+        const weekdayTotals = new Array(7).fill(0);
+
+        const now = new Date();
+        const startCutoff = new Date();
+        startCutoff.setDate(now.getDate() - (daysForRange - 1));
+
+        reservationsArray.forEach((item) => {
+          const startTime = item.startTime || item.reservationDate;
+          if (!startTime) return;
+
+          const date = new Date(startTime);
+          if (Number.isNaN(date.getTime())) return;
+
+          // Filter by selected date range (last N days)
+          if (date < startCutoff || date > now) return;
+
+          // Optionally ignore cancelled / no-show
+          const status = item.status;
+          if (status === 'CANCELLED' || status === 'NO_SHOW') return;
+
+          const weekdayIndex = date.getDay(); // 0 (Sun) - 6 (Sat)
+          weekdayTotals[weekdayIndex] += 1;
+        });
+
+        const aggregated = weekdayLabels.map((label, idx) => ({
+          day: label,
+          reservations: weekdayTotals[idx],
+        }));
+
+        const maxReservations = Math.max(...weekdayTotals, 0);
+
+        setReservationsByWeekday(aggregated);
+        setMaxWeekdayReservations(maxReservations);
+      } catch (e) {
+        console.error('Failed to load reservations stats for dashboard', e);
+        setReservationsByWeekday(
+          weekdayLabels.map((d) => ({ day: d, reservations: 0 })),
+        );
+        setMaxWeekdayReservations(0);
+      }
+    };
+
+    fetchReservationsStats();
+  }, [daysForRange, reportType]);
 
   const avgOrderValue =
     ordersCount > 0 ? totalRevenue / ordersCount : 0;
@@ -197,6 +315,75 @@ export default function ReportsSection() {
   const maxSales = salesData.length
     ? Math.max(...salesData.map((d) => d.sales))
     : 0;
+
+  const handleExport = () => {
+    try {
+      const lines: string[] = [];
+
+      // Meta info
+      lines.push(`Report range,${dateRange},Last ${daysForRange} days`);
+      lines.push('');
+
+      // Sales trend section
+      lines.push('Sales Trend');
+      lines.push('Date,Revenue,Orders');
+      salesData.forEach((d) => {
+        lines.push(`${d.day},${d.sales},${d.orders}`);
+      });
+      lines.push('');
+
+      // Top selling items section
+      lines.push('Top Selling Items');
+      lines.push('Rank,Item Name,Orders,Revenue');
+      topItems.forEach((item, idx) => {
+        const safeName = `"${item.name.replace(/"/g, '""')}"`;
+        lines.push(
+          `${idx + 1},${safeName},${item.orders},${item.revenue.toFixed(2)}`,
+        );
+      });
+      lines.push('');
+
+      // Category breakdown section
+      lines.push('Sales by Category');
+      lines.push('Category,Percentage,Revenue');
+      categoryBreakdown.forEach((cat) => {
+        const safeCategory = `"${cat.category.replace(/"/g, '""')}"`;
+        lines.push(
+          `${safeCategory},${cat.percentage},${cat.revenue.toFixed(2)}`,
+        );
+      });
+      lines.push('');
+
+      // Reservations by weekday section
+      lines.push('Reservations by Day of Week');
+      lines.push('Day,Reservations');
+      reservationsByWeekday.forEach((d) => {
+        lines.push(`${d.day},${d.reservations}`);
+      });
+
+      const csvContent = lines.join('\r\n');
+      const blob = new Blob([csvContent], {
+        type: 'text/csv;charset=utf-8;',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const timestamp = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/[:T]/g, '-');
+      link.href = url;
+      link.setAttribute(
+        'download',
+        `reports-${dateRange}-${timestamp}.csv`,
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Failed to export reports CSV', e);
+    }
+  };
 
   return (
     <section id="reports" className="space-y-6">
@@ -217,7 +404,18 @@ export default function ReportsSection() {
             <option value="thismonth">This Month</option>
             <option value="lastmonth">Last Month</option>
           </select>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium shadow-lg hover:shadow-xl transition-all">
+          <button
+            type="button"
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium shadow-lg hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            disabled={
+              loading ||
+              (!salesData.length &&
+                !topItems.length &&
+                !categoryBreakdown.length &&
+                !reservationsByWeekday.length)
+            }
+          >
             <Download className="w-4 h-4" />
             Export
           </button>
@@ -237,7 +435,7 @@ export default function ReportsSection() {
       )}
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="rounded-2xl border-2 border-white/20 bg-white shadow-xl p-6">
           <div className="flex items-start justify-between">
             <div>
@@ -300,8 +498,14 @@ export default function ReportsSection() {
             </div>
           </div>
 
-          {/* Simple Bar Chart */}
-          <div className="space-y-4">
+          {/* Simple Bar Chart - Scrollable with 6 items visible */}
+          <div 
+            className="space-y-4 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar"
+            style={{ 
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#d1d5db #f3f4f6'
+            }}
+          >
             {salesData.map((day, idx) => (
               <div key={idx} className="flex items-center gap-3">
                 <div className="w-12 text-sm font-medium text-gray-600">{day.day}</div>
@@ -400,46 +604,68 @@ export default function ReportsSection() {
         </div>
       </div>
 
-      {/* Peak Reservation Hours */}
+      {/* Reservations by Day of Week */}
       <div className="rounded-2xl border-2 border-white/20 bg-white shadow-xl p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-orange-100 rounded-lg text-orange-600">
             <Clock className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Peak Reservation Hours</h3>
-            <p className="text-sm text-gray-500">Average number of reservations by hour</p>
+            <h3 className="text-lg font-bold text-gray-900">
+              Reservations by Day of Week
+            </h3>
+            <p className="text-sm text-gray-500">
+              Total reservations grouped by weekday for the selected period
+            </p>
           </div>
         </div>
-        
-        <div className="h-64 flex items-end gap-2 sm:gap-4">
-          {peakHoursData.map((data, idx) => {
-            const rawHeight = maxPeak ? (data.count / maxPeak) * 100 : 0;
-            const barHeight = data.count > 0 ? Math.max(rawHeight, 8) : 0; // ensure visible bar
 
-            return (
-              <div key={idx} className="flex-1 flex flex-col items-center gap-2 group">
-                <div className="relative w-full flex items-end justify-center h-full">
-                  <div
-                    className="w-full bg-orange-50 rounded-t-lg group-hover:bg-orange-100 transition-colors relative border border-orange-100"
-                    style={{ height: `${barHeight}%` }}
-                  >
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-md">
-                      {data.count} reservations
+        {maxWeekdayReservations === 0 ? (
+          <div className="h-64 flex items-center justify-center text-sm text-gray-500">
+            No reservations in the selected period yet.
+          </div>
+        ) : (
+          <div className="h-64 flex items-end gap-3 sm:gap-4 overflow-x-auto pb-4">
+            {reservationsByWeekday.map((d) => {
+              // Use the actual max reservations as the reference for bar height (100%)
+              const maxReference = maxWeekdayReservations > 0 ? maxWeekdayReservations : 1;
+              const ratio =
+                d.reservations <= 0
+                  ? 0
+                  : d.reservations / maxReference;
+
+              // Scale heights between 20% and 95% for better visibility
+              // Using absolute pixel values from the 256px container (h-64 = 256px)
+              const containerHeight = 256; // h-64 = 16rem = 256px
+              const minHeightPx = containerHeight * 0.2; // 20% minimum
+              const maxHeightPx = containerHeight * 0.95; // 95% maximum
+              const barHeightPx = d.reservations > 0 
+                ? minHeightPx + (maxHeightPx - minHeightPx) * ratio 
+                : 0;
+
+              return (
+                <div
+                  key={d.day}
+                  className="flex-1 min-w-[40px] flex flex-col items-center gap-2 group"
+                >
+                  <div className="relative w-full flex items-end justify-center" style={{ height: '256px' }}>
+                    <div
+                      className="w-full rounded-t-lg relative border border-orange-100 bg-gradient-to-t from-orange-500 to-red-500 opacity-90 group-hover:opacity-100 transition-all shadow-md"
+                      style={{ height: `${barHeightPx}px` }}
+                    >
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-md">
+                        {d.reservations} reservations
+                      </div>
                     </div>
                   </div>
-                  <div
-                    className="absolute bottom-0 w-full bg-gradient-to-t from-orange-500 to-red-500 rounded-t-lg opacity-90 group-hover:opacity-100 transition-opacity shadow-md"
-                    style={{ height: `${barHeight}%` }}
-                  />
+                  <span className="text-xs font-medium text-gray-600 -rotate-45 sm:rotate-0 origin-top sm:origin-center mt-2 sm:mt-0 whitespace-nowrap">
+                    {d.day}
+                  </span>
                 </div>
-                <span className="text-xs font-medium text-gray-600 -rotate-45 sm:rotate-0 origin-top sm:origin-center mt-2 sm:mt-0 whitespace-nowrap">
-                  {data.hour}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

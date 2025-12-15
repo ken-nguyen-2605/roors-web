@@ -304,7 +304,7 @@ export default function OrdersSection() {
               }
             }}
             placeholder="Search by Order ID (e.g. 12345)"
-            className="bg-color: white w-full lg:w-64 px-4 py-2 rounded-xl border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+            className="bg-white w-full lg:w-64 px-4 py-2 rounded-xl border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
           />
           <div className="flex gap-2">
             <button
