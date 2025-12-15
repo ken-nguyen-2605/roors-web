@@ -80,20 +80,20 @@ export default function MenuSection() {
       let response;
       
       if (searchTerm.trim()) {
-        // Search by keyword
-        response = await menuService.searchMenuItems(searchTerm, {
+        // Search by keyword (admin - includes unavailable items)
+        response = await menuService.searchMenuItemsForAdmin(searchTerm, {
           page: currentPage,
           size: pageSize
         });
       } else if (filterCategory !== 'all') {
-        // Filter by category
-        response = await menuService.getMenuItemsByCategory(filterCategory as number, {
+        // Filter by category (admin - includes unavailable items)
+        response = await menuService.getMenuItemsByCategoryForAdmin(filterCategory as number, {
           page: currentPage,
           size: pageSize
         });
       } else {
-        // Get all items
-        response = await menuService.getAllMenuItems({
+        // Get all items (admin - includes unavailable items)
+        response = await menuService.getAllMenuItemsForAdmin({
           page: currentPage,
           size: pageSize,
           sortBy: 'name',
@@ -148,12 +148,12 @@ export default function MenuSection() {
         name: newItem.name,
         categoryId: newItem.categoryId,
         price: newItem.price,
-        available: newItem.available,
+        isAvailable: newItem.available !== undefined ? newItem.available : true,  // ✅ Backend expects isAvailable
         description: newItem.description,
         imageUrl: newItem.imageUrl || '',
         ingredients: newItem.ingredients || '',
-        allergyInfo: newItem.allergyInfo || '',
-        featured: newItem.featured || false,
+        allergens: newItem.allergyInfo || '',  // ✅ Backend expects allergens (not allergyInfo)
+        isFeatured: newItem.featured !== undefined ? newItem.featured : false,  // ✅ Backend expects isFeatured
         preparationTime: newItem.preparationTime || 0
       };
 
@@ -178,12 +178,12 @@ export default function MenuSection() {
         name: updatedItem.name,
         categoryId: updatedItem.categoryId,
         price: updatedItem.price,
-        available: updatedItem.available,
+        isAvailable: updatedItem.available !== undefined ? updatedItem.available : true,  // ✅ Backend expects isAvailable (not available)
         description: updatedItem.description,
         imageUrl: updatedItem.imageUrl || '',
         ingredients: updatedItem.ingredients || '',
-        allergyInfo: updatedItem.allergyInfo || '',
-        featured: updatedItem.featured || false,
+        allergens: updatedItem.allergyInfo || '',  // ✅ Backend expects allergens (not allergyInfo)
+        isFeatured: updatedItem.featured !== undefined ? updatedItem.featured : false,  // ✅ Backend expects isFeatured (not featured)
         preparationTime: updatedItem.preparationTime || 0
       };
 

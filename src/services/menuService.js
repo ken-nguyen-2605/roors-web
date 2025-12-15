@@ -124,6 +124,60 @@ export const getAllMenuItems = async (params = {}) => {
 };
 
 /**
+ * Get all menu items for admin (including unavailable)
+ * Endpoint: GET /api/menu/admin/all
+ */
+export const getAllMenuItemsForAdmin = async (params = {}) => {
+  try {
+    const { page = 0, size = 500, sortBy = 'name', sortDir = 'asc' } = params;
+
+    const queryParams = new URLSearchParams({
+      page,
+      size,
+      sortBy,
+      sortDir,
+    });
+
+    const response = await apiService.get(`/api/menu/admin/all?${queryParams.toString()}`);
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Get menu items by category for admin (including unavailable)
+ * Endpoint: GET /api/menu/admin/category/{categoryId}
+ */
+export const getMenuItemsByCategoryForAdmin = async (categoryId, params = {}) => {
+  try {
+    const { page = 0, size = 12 } = params;
+    const response = await apiService.get(`/api/menu/admin/category/${categoryId}`, {
+      params: { page, size },
+    });
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
+ * Search menu items for admin (including unavailable)
+ * Endpoint: GET /api/menu/admin/search
+ */
+export const searchMenuItemsForAdmin = async (keyword = "", params = {}) => {
+  try {
+    const { page = 0, size = 12 } = params;
+    const response = await apiService.get('/api/menu/admin/search', {
+      params: { keyword, page, size },
+    });
+    return response;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+/**
  * Get menu items by category
  * Endpoint: GET /api/menu/category/{categoryId}
  */
@@ -548,6 +602,11 @@ const menuService = {
   toggleMenuItemAvailability,
   deleteMenuItem,
   getFilteredMenuItems, // Combined filter
+
+  // Admin Menu Items (including unavailable)
+  getAllMenuItemsForAdmin,
+  getMenuItemsByCategoryForAdmin,
+  searchMenuItemsForAdmin,
 
   // Menu Item Likes
   likeMenuItem,
