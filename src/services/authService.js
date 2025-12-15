@@ -24,62 +24,65 @@ class AuthService {
 		}
 	}
 
-	// Login user
-    async login(username, password, rememberMe = false) {
-        try {
-            const response = await apiService.post("/api/auth/login", {
-                username,
-                password,
-            });
+  // Login user
+  async login(username, password, rememberMe = false) {
+    try {
+      const response = await apiService.post("/api/auth/login", {
+        username,
+        password,
+      });
 
-            // ✅ FIX: Extract tokens from the response
-            const { accessToken, refreshToken } = response;
+      // Backend returns { token }; keep backward compatibility with accessToken too
+      const jwtToken = response?.accessToken || response?.token;
+      const refreshToken = response?.refreshToken;
 
-            if (accessToken) {
-                // Set token in API service
-                apiService.setToken(accessToken);
+      if (jwtToken) {
+        apiService.setToken(jwtToken);
 
-                if (typeof window !== "undefined") {
-                    // Store refresh token for later use
-                    localStorage.setItem("refreshToken", refreshToken);
+        if (typeof window !== "undefined") {
+          // Persist tokens in localStorage
+          localStorage.setItem("authToken", jwtToken);
+          if (refreshToken) {
+            localStorage.setItem("refreshToken", refreshToken);
+          }
 
-                    // Decode the token to get user details
-                    const decodedToken = this.parseJwt(accessToken);
+          // Mirror token into a cookie so Next.js middleware can read it
+          const expiry = rememberMe
+            ? `; max-age=${60 * 60 * 24 * 30}` // 30 days
+            : "";
+          document.cookie = `authToken=${jwtToken}; path=/${expiry}`;
 
-                    if (decodedToken) {
-                        const info = {
-                            username: decodedToken.username,
-                            role: decodedToken.role,
-                            id: decodedToken.sub,
-                        };
-
-                        console.log(
-                            "[authService] Extracted userInfo from JWT:",
-                            info
-                        );
-                        localStorage.setItem("userInfo", JSON.stringify(info));
-                    }
-
-                    // Handle remember me
-                    if (rememberMe) {
-                        localStorage.setItem("rememberMe", "true");
-                    }
-                }
-            }
-
-            return {
-                success: true,
-                data: response,
-                message: "Login successful!",
+          const decodedToken = this.parseJwt(jwtToken);
+          if (decodedToken) {
+            const info = {
+              username: decodedToken.username,
+              role: decodedToken.role,
+              id: decodedToken.sub,
             };
-        } catch (error) {
-            return {
-                success: false,
-                message: error.message || "Login failed",
-                status: error.status,
-            };
+            localStorage.setItem("userInfo", JSON.stringify(info));
+          }
+
+          if (rememberMe) {
+            localStorage.setItem("rememberMe", "true");
+          } else {
+            localStorage.removeItem("rememberMe");
+          }
         }
+      }
+
+      return {
+        success: true,
+        data: response,
+        message: "Login successful!",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Login failed",
+        status: error.status,
+      };
     }
+  }
 
 	// Logout user
 	logout() {
@@ -88,6 +91,8 @@ class AuthService {
 			localStorage.removeItem("userInfo");
 			localStorage.removeItem("rememberMe");
       localStorage.removeItem("refreshToken");
+      // Remove cookie used by middleware
+      document.cookie = "authToken=; path=/; max-age=0";
 		}
 	}
 
