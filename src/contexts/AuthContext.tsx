@@ -4,7 +4,25 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import authService from '@/services/authService';
 import { useRouter } from 'next/navigation';
 
-const AuthContext = createContext({});
+interface AuthContextType {
+  user: any;
+  loading: boolean;
+  isAuthenticated: boolean;
+  login: (
+    username: string, 
+    password: string, 
+    rememberMe?: boolean
+  ) => Promise<any>;
+  register: (
+    username: string, 
+    email: string, 
+    password: string
+  ) => Promise<any>;
+  logout: () => void;
+  checkAuth: () => void;
+};
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -14,7 +32,11 @@ export const useAuth = () => {
   return context;
 };
 
-export function AuthProvider({ children }) {
+type AuthProviderProps = {
+  children: React.ReactNode;
+};
+
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -42,7 +64,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const login = async (username, password, rememberMe = false) => {
+  const login = async (username: string, password: string, rememberMe = false) => {
     try {
       const result = await authService.login(username, password, rememberMe);
       
@@ -53,7 +75,7 @@ export function AuthProvider({ children }) {
       }
       
       return { success: false, message: result.message };
-    } catch (error) {
+    } catch (error: any) {
       return { 
         success: false, 
         message: error.message || 'Login failed' 
@@ -61,11 +83,11 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (username, email, password) => {
+  const register = async (username: string, email: string, password: string) => {
     try {
       const result = await authService.register(username, email, password);
       return result;
-    } catch (error) {
+    } catch (error: any) {
       return { 
         success: false, 
         message: error.message || 'Registration failed' 
@@ -79,7 +101,7 @@ export function AuthProvider({ children }) {
     router.push('/auth/login');
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     loading,
     isAuthenticated: !!user,
@@ -95,25 +117,3 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-
-// Example usage in a component:
-/*
-'use client';
-
-import { useAuth } from '@/contexts/AuthContext';
-
-export default function SomeComponent() {
-  const { user, isAuthenticated, login, logout } = useAuth();
-
-  if (!isAuthenticated) {
-    return <div>Please log in</div>;
-  }
-
-  return (
-    <div>
-      <h1>Welcome, {user.username}!</h1>
-      <button onClick={logout}>Logout</button>
-    </div>
-  );
-}
-*/

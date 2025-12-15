@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { ChangeEvent, FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Star from "@/components/decorativeComponents/Star";
@@ -69,6 +69,11 @@ const styles = {
   },
 };
 
+interface FormErrors {
+  username?: string;
+  password?: string;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth(); // ✅ Use the context's login function
@@ -79,26 +84,26 @@ export default function LoginPage() {
     rememberMe: false
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [apiSuccess, setApiSuccess] = useState('');
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
 
-    if (errors[name]) {
+    if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
     if (apiError) setApiError('');
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: FormErrors = {};
 
     if (!formData.username.trim()) {
       newErrors.username = 'Username is required';
@@ -112,7 +117,7 @@ export default function LoginPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setApiError('');
     setApiSuccess('');
@@ -282,7 +287,7 @@ export default function LoginPage() {
                     </p>
 
                     <p className={styles.form.textCenter}>
-                      Don't have an account?{' '}
+                      {"Don't have an account?"} {' '}
                       <Link href="/auth/signup" className={styles.form.linkBold}>
                         Sign Up
                       </Link>

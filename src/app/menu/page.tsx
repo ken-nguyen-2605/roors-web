@@ -88,18 +88,21 @@ export default function Menu() {
             setLoading(true);
             setError(null);
 
-            const filters = {
-                categoryId: selectedCategoryId,
+            const filters: any = {
                 keyword: keyword.trim(),
                 minPrice: minPrice ? parseFloat(minPrice) : null,
                 maxPrice: maxPrice ? parseFloat(maxPrice) : null,
                 minRating: rating ? parseInt(rating) : 0,
                 page: 0,
-                size: 500, // Load all for now, add pagination later if needed
+                size: 500,
             };
 
-           const response = await menuService.getFilteredMenuItems(filters);
+            if (selectedCategoryId !== null) {
+                filters.categoryId = selectedCategoryId;
+                }
 
+            const response = await menuService.getFilteredMenuItems(filters);
+            
             // Safely check response
             if (response && response.content) {
                 setMenuItems(response.content);
@@ -240,9 +243,9 @@ export default function Menu() {
                                 <div key={dish.id}>
                                     <DishCard
                                         id={dish.id}
-                                        name={dish.name}
-                                        image={dish.imageUrl}
-                                        description={dish.description}
+                                        names={dish.name}
+                                        images={dish.imageUrl}
+                                        descriptions={dish.description}
                                         price={dish.price}
                                         categories={dish.category ? [dish.category.name] : []}
                                         rating={dish.rating}

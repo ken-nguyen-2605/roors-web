@@ -101,8 +101,8 @@ export default function ForgotPasswordPage() {
       setError('');
       setIsSuccess(true);
       setSuccessMessage(result.message || 'Password reset link sent to your email');
-    } catch (err) {
-      setError(err?.message || 'Failed to send reset email. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset email. Please try again.');
       console.error('Password reset error:', err);
     } finally {
       setIsLoading(false);

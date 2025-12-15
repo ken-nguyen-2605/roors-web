@@ -70,7 +70,9 @@ export default function DateSelector({ selectedDate, onSelect }: Props) {
 						return (
 							<button
 								key={date}
-								ref={(el) => (buttonRefs.current[date] = el)}
+								ref={(el) => {
+									buttonRefs.current[date] = el;
+								}}
 								onClick={() => onSelect(date)}
 								className={`
                   relative min-w-[85px] px-4 py-2 rounded-lg

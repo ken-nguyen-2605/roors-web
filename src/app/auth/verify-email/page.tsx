@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Star from "@/components/decorativeComponents/Star";
@@ -48,16 +48,29 @@ const styles = {
   },
 };
 
-export default function EmailVerifiedPage() {
+// Loading component for Suspense fallback
+function LoadingState() {
+  return (
+    <div className="text-center space-y-6">
+      <div className="flex justify-center">
+        <div className="w-20 h-20 border-4 border-gray-200 border-t-[#D4AF37] rounded-full animate-spin"></div>
+      </div>
+      <h2 className={styles.content.title}>Loading...</h2>
+      <p className={styles.content.subtitle}>Please wait...</p>
+    </div>
+  );
+}
+
+// Component that uses useSearchParams - must be wrapped in Suspense
+function EmailVerificationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [verificationStatus, setVerificationStatus] = useState('verifying'); // verifying, success, error
+  const [verificationStatus, setVerificationStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [countdown, setCountdown] = useState(5);
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     const verifyEmail = async () => {
-      // Get token from URL parameters
       const token = searchParams.get('token');
       
       if (!token) {
@@ -67,17 +80,13 @@ export default function EmailVerifiedPage() {
       }
 
       try {
-        // Simulate API call to verify email
         const result = await authService.verifyEmail(token);
         
-        // Here you would call your email verification API
-        // const result = await authService.verifyEmail(token);
-        
         if (result.success) {
-            setVerificationStatus('success');
+          setVerificationStatus('success');
         } else {
-        setVerificationStatus('error');
-        setErrorMessage(result.message);
+          setVerificationStatus('error');
+          setErrorMessage(result.message);
         }
       } catch (error) {
         setVerificationStatus('error');
@@ -101,111 +110,107 @@ export default function EmailVerifiedPage() {
     }
   }, [verificationStatus, countdown, router]);
 
-  const renderContent = () => {
-    if (verificationStatus === 'verifying') {
-      return (
-        <div className="text-center space-y-6">
-          {/* Loading Spinner */}
-          <div className="flex justify-center">
-            <div className="w-20 h-20 border-4 border-gray-200 border-t-[#D4AF37] rounded-full animate-spin"></div>
-          </div>
-
-          <h2 className={styles.content.title}>Verifying Your Email</h2>
-          <p className={styles.content.subtitle}>
-            Please wait while we verify your email address...
-          </p>
+  if (verificationStatus === 'verifying') {
+    return (
+      <div className="text-center space-y-6">
+        <div className="flex justify-center">
+          <div className="w-20 h-20 border-4 border-gray-200 border-t-[#D4AF37] rounded-full animate-spin"></div>
         </div>
-      );
-    }
+        <h2 className={styles.content.title}>Verifying Your Email</h2>
+        <p className={styles.content.subtitle}>
+          Please wait while we verify your email address...
+        </p>
+      </div>
+    );
+  }
 
-    if (verificationStatus === 'success') {
-      return (
-        <div className="text-center space-y-6">
-          {/* Success Icon */}
-          <div className="flex justify-center">
-            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
-              <svg 
-                className="w-12 h-12 text-green-500" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M5 13l4 4L19 7" 
-                />
-              </svg>
-            </div>
-          </div>
-
-          <h2 className={styles.content.title}>Email Verified!</h2>
-          <p className={styles.content.subtitle}>
-            Your email has been successfully verified. You can now access all features of your account.
-          </p>
-
-          <div className="space-y-4 pt-4">
-            <Link href="/auth/login" className={`block ${styles.content.button}`}>
-              Sign In to Your Account
-            </Link>
-
-            <p className={styles.content.textCenter}>
-              Redirecting to sign in page in {countdown} seconds...
-            </p>
+  if (verificationStatus === 'success') {
+    return (
+      <div className="text-center space-y-6">
+        <div className="flex justify-center">
+          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
+            <svg 
+              className="w-12 h-12 text-green-500" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M5 13l4 4L19 7" 
+              />
+            </svg>
           </div>
         </div>
-      );
-    }
 
-    if (verificationStatus === 'error') {
-      return (
-        <div className="text-center space-y-6">
-          {/* Error Icon */}
-          <div className="flex justify-center">
-            <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center">
-              <svg 
-                className="w-12 h-12 text-red-500" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M6 18L18 6M6 6l12 12" 
-                />
-              </svg>
-            </div>
-          </div>
+        <h2 className={styles.content.title}>Email Verified!</h2>
+        <p className={styles.content.subtitle}>
+          Your email has been successfully verified. You can now access all features of your account.
+        </p>
 
-          <h2 className={styles.content.title}>Verification Failed</h2>
-          <p className={styles.content.subtitle}>
-            {errorMessage || 'We couldn\'t verify your email address.'}
+        <div className="space-y-4 pt-4">
+          <Link href="/auth/login" className={`block ${styles.content.button}`}>
+            Sign In to Your Account
+          </Link>
+
+          <p className={styles.content.textCenter}>
+            Redirecting to sign in page in {countdown} seconds...
           </p>
-
-          <div className="space-y-4 pt-4">
-            <Link href="/signup" className={`block ${styles.content.button}`}>
-              Create New Account
-            </Link>
-
-            <Link href="/auth/login" className={`block ${styles.content.secondaryButton}`}>
-              Back to Sign In
-            </Link>
-
-            <p className={styles.content.textCenter}>
-              Need help?{' '}
-              <Link href="/contact" className="text-blue-600 hover:underline font-medium">
-                Contact Support
-              </Link>
-            </p>
-          </div>
         </div>
-      );
-    }
-  };
+      </div>
+    );
+  }
 
+  // error state
+  return (
+    <div className="text-center space-y-6">
+      <div className="flex justify-center">
+        <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center">
+          <svg 
+            className="w-12 h-12 text-red-500" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M6 18L18 6M6 6l12 12" 
+            />
+          </svg>
+        </div>
+      </div>
+
+      <h2 className={styles.content.title}>Verification Failed</h2>
+      <p className={styles.content.subtitle}>
+        {errorMessage || "We couldn't verify your email address."}
+      </p>
+
+      <div className="space-y-4 pt-4">
+        <Link href="/signup" className={`block ${styles.content.button}`}>
+          Create New Account
+        </Link>
+
+        <Link href="/auth/login" className={`block ${styles.content.secondaryButton}`}>
+          Back to Sign In
+        </Link>
+
+        <p className={styles.content.textCenter}>
+          Need help?{' '}
+          <Link href="/contact" className="text-blue-600 hover:underline font-medium">
+            Contact Support
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Main page component
+export default function EmailVerifiedPage() {
   return (
     <div className={styles.page.container}>
       
@@ -249,11 +254,13 @@ export default function EmailVerifiedPage() {
               </div>
             </div>
 
-            {/* Right - Content Section */}
+            {/* Right - Content Section with Suspense */}
             <div className={styles.contentSection.container}>
               <div className={styles.contentSection.contentWrapper}>
                 <div className={styles.contentSection.contentContainer}>
-                  {renderContent()}
+                  <Suspense fallback={<LoadingState />}>
+                    <EmailVerificationContent />
+                  </Suspense>
                 </div>
               </div>
             </div>

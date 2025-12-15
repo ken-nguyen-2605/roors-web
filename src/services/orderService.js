@@ -502,6 +502,22 @@ class OrderService {
     }
   }
 
+  async reorder(orderId) {
+    try {
+      const response = await apiService.post(`/api/orders/${orderId}/reorder`);
+      return {
+        success: true,
+        data: response,
+        message: 'Re-order placed successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Failed to place re-order',
+        status: error.status,
+      };
+    }
+  }
 }
 
 export default new OrderService();

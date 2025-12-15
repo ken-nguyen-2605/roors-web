@@ -9,7 +9,7 @@ interface User {
   name: string;
   email: string;
   phone: string;
-  role: 'Manager' | 'Staff' | 'Customer';
+  role: 'Manager' | 'Staff' | 'Customer' | 'Owner';
   status: 'Active' | 'Inactive' | 'On Leave';
   joinedDate: Date;
   lastActive: Date;

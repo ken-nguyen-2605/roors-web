@@ -6,12 +6,8 @@ import orderService from '@/services/orderService';
 
 interface OrderItem {
   id: string;
-  menuItem: {
-    id: string;
-    name: string;
-    price: number;
-    imageUrl?: string;
-  };
+  menuItemName: string;
+  unitPrice: number;
   quantity: number;
   price: number;
   subtotal: number;
@@ -23,9 +19,9 @@ interface Order {
   customerName: string;
   customerPhone: string;
   deliveryAddress?: string;
-  orderItems: OrderItem[];
+  items: OrderItem[];
   subtotal: number;
-  tax: number;
+  taxAmount: number;
   deliveryFee: number;
   totalAmount: number;
   status: 'PENDING' | 'PREPARING' | 'READY' | 'DELIVERED' | 'CANCELLED';
