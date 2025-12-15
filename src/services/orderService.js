@@ -156,7 +156,44 @@ class OrderService {
   }
 
 
+/**
+ * 
+ * // ✅ NEW: Check payment status by payment ID
+    checkPaymentStatus: async (paymentId: string) => {
+        try {
+            const response = await apiService.get(`/api/payments/${paymentId}`);
+            return {
+                success: true,
+                data: response
+            };
+        } catch (error: any) {
+            console.error('Check payment status error:', error);
+            return {
+                success: false,
+                message: error.message || 'Failed to check payment status'
+            };
+        }
+    },
 
+ */
+
+  // Check payment status
+  async checkPaymentStatus(paymentCode) {
+    try {
+      const response = await apiService.get(`/api/payments/${paymentCode}`);
+      return {
+        success: true,
+        data: response,
+        message: 'Payment status retrieved',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Failed to retrieve payment status',
+        status: error.status,
+      };
+    }
+  }
 
   // Update order (full or partial payload)
   async updateOrder(orderId, payload) {

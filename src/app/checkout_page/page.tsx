@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from "next/image";
 import Link from "next/link";
 
@@ -16,19 +16,28 @@ const italiana = Italiana({
   subsets: ['latin'],
 });
 
-// Import your services and store
 import apiService from '@/services/api';
 import orderService from '@/services/orderService';
 import { useNoteStore } from "@/stores/useNoteStore";
 
-// QR Code generation - you can use a library like 'qrcode.react' or generate via API
-// npm install qrcode.react
-// import QRCode from 'qrcode.react';
+interface PaymentData {
+    paymentId: string;
+    paymentCode: string;
+    paymentMethod: string;
+    paymentStatus: string;
+    amount: number;
+    qrCodeData?: string;
+    bankCode?: string;
+    accountNumber?: string;
+    accountName?: string;
+    transferContent?: string;
+}
 
 interface OrderData {
     orderId: string;
     orderCode: string;
     total: number;
+    payment?: PaymentData;
 }
 
 export default function Checkout() {
@@ -50,27 +59,109 @@ export default function Checkout() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // ✅ Polling state
+    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const [pollingCount, setPollingCount] = useState(0);
+    const MAX_POLLING_ATTEMPTS = 60; // 5 minutes (60 * 5 seconds)
+    const POLLING_INTERVAL = 5000; // 5 seconds
     
-    // NEW: Store pending order data for QR payment
     const [pendingOrderData, setPendingOrderData] = useState<OrderData | null>(null);
     const [paymentStatus, setPaymentStatus] = useState<'pending' | 'checking' | 'confirmed' | 'failed'>('pending');
+    const [qrImageError, setQrImageError] = useState(false);
 
-    // Get quantities and reset function from Zustand store
     const { quantities, reset } = useNoteStore();
 
-    const deliveryFee = 5.00;
+    const deliveryFee = 8000.00;
 
-    // Load cart items from note store on component mount
+    // ✅ Cleanup polling on unmount
+    useEffect(() => {
+        return () => {
+            stopPaymentPolling();
+        };
+    }, []);
+
     useEffect(() => {
         loadCartItems();
     }, [quantities]);
+
+    // ✅ Stop polling function
+    const stopPaymentPolling = useCallback(() => {
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+            console.log("Polling stopped");
+        }
+    }, []);
+
+    // ✅ Handle successful payment
+    const handlePaymentSuccess = useCallback(() => {
+        console.log("Payment confirmed!");
+        stopPaymentPolling();
+        setPaymentStatus('confirmed');
+        reset();
+        
+        setTimeout(() => {
+            setOrderPlaced(true);
+        }, 1500);
+        
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 4500);
+    }, [reset, stopPaymentPolling]);
+
+    // ✅ Start polling function
+    const startPaymentPolling = useCallback((paymentCode: string) => {
+        console.log("Starting payment polling for:", paymentCode);
+        setPollingCount(0);
+        
+        // Clear any existing interval
+        stopPaymentPolling();
+
+        pollingIntervalRef.current = setInterval(async () => {
+            setPollingCount(prev => {
+                const newCount = prev + 1;
+                console.log(`Polling attempt ${newCount}/${MAX_POLLING_ATTEMPTS}`);
+                
+                // Stop polling after max attempts
+                if (newCount >= MAX_POLLING_ATTEMPTS) {
+                    stopPaymentPolling();
+                    setError('Hết thời gian chờ thanh toán. Vui lòng thử lại hoặc liên hệ hỗ trợ.');
+                    setPaymentStatus('failed');
+                    return newCount;
+                }
+                return newCount;
+            });
+
+            try {
+                // Check payment status from backend
+                const statusResult = await orderService.checkPaymentStatus(paymentCode);
+                console.log("Payment status check result:", statusResult);
+
+                if (statusResult.success && statusResult.data) {
+                    const status = statusResult.data.status || statusResult.data.paymentStatus;
+                    
+                    if (status === 'PAID' || status === 'COMPLETED') {
+                        handlePaymentSuccess();
+                    } else if (status === 'FAILED' || status === 'CANCELLED' || status === 'EXPIRED') {
+                        console.log("Payment failed or cancelled");
+                        stopPaymentPolling();
+                        setPaymentStatus('failed');
+                        setError('Thanh toán thất bại hoặc đã hết hạn.');
+                    }
+                    // If still PENDING, continue polling
+                }
+            } catch (err) {
+                console.error("Payment polling error:", err);
+                // Don't stop polling on error, just log it
+            }
+        }, POLLING_INTERVAL);
+    }, [stopPaymentPolling, handlePaymentSuccess]);
 
     const loadCartItems = async () => {
         try {
             setLoading(true);
             setError(null);
-
-            console.log("Quantities from store:", quantities);
 
             const menuItemIds = Object.keys(quantities);
             if (menuItemIds.length === 0) {
@@ -84,10 +175,7 @@ export default function Checkout() {
                     try {
                         const id = parseInt(menuItemId);
                         const quantity = quantities[id];
-                        
-                        console.log("Fetching menu item:", id, "with quantity:", quantity);
                         const menuItem = await apiService.get(`/api/menu/${id}`);
-                        console.log("Menu item fetched:", menuItem);
                         
                         return {
                             id: id,
@@ -105,7 +193,6 @@ export default function Checkout() {
             );
 
             const validItems = itemsWithDetails.filter(item => item !== null);
-            console.log("Valid cart items:", validItems);
             setCartItems(validItems);
             setLoading(false);
         } catch (error) {
@@ -149,7 +236,7 @@ export default function Checkout() {
         return true;
     };
 
-    const createOrderPayload = (status: string = 'PENDING') => {
+    const createOrderPayload = (paymentMethodType: string) => {
         return {
             customerName: formData.fullName,
             customerPhone: formData.phone,
@@ -157,28 +244,13 @@ export default function Checkout() {
             deliveryAddress: `${formData.address}, ${formData.ward}, ${formData.district}, ${formData.city}`,
             notes: formData.notes || null,
             orderType: 'DELIVERY',
-            paymentMethod: paymentMethod === 'cash' ? 'CASH' : 'BANK_TRANSFER',
-            paymentStatus: status, // Add payment status
+            paymentMethod: paymentMethodType,
             items: cartItems.map(item => ({
                 menuItemId: item.menuItemId,
                 quantity: item.quantity,
                 notes: null
             }))
         };
-    };
-
-    // Generate VietQR URL for Vietnamese banks
-    const generateVietQRUrl = (orderCode: string, amount: number) => {
-        // Replace with your actual bank details
-        const bankId = 'MB'; // Bank code (MB, VCB, TCB, etc.)
-        const accountNo = '0909630904'; // Your bank account number
-        const accountName = 'NGUYEN PHUC DIEN'; // Your account name
-        const template = 'compact2'; // QR template
-        
-        // VietQR API URL
-        const vietQRUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-${template}.png?amount=${amount}&addInfo=${orderCode}&accountName=${encodeURIComponent(accountName)}`;
-        
-        return vietQRUrl;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -190,21 +262,18 @@ export default function Checkout() {
         }
 
         if (paymentMethod === 'cash') {
-            // Create order immediately for cash payment
             await createOrderForCash();
         } else {
-            // For QR payment: Create order first with PENDING status, then show QR
             await createOrderForQR();
         }
     };
 
-    // Handle cash payment
     const createOrderForCash = async () => {
         try {
             setSubmitting(true);
             setError(null);
 
-            const orderPayload = createOrderPayload('PENDING');
+            const orderPayload = createOrderPayload('CASH');
             console.log("Creating cash order with payload:", orderPayload);
             
             const result = await orderService.createOrder(orderPayload);
@@ -212,6 +281,11 @@ export default function Checkout() {
 
             if (result.success) {
                 reset();
+                setPendingOrderData({
+                    orderId: result.data.id,
+                    orderCode: result.data.orderNumber,
+                    total: total
+                });
                 setOrderPlaced(true);
                 
                 setTimeout(() => {
@@ -228,27 +302,50 @@ export default function Checkout() {
         }
     };
 
-    // Handle QR payment - Create order first, then show QR
+    // ✅ Updated createOrderForQR with polling
     const createOrderForQR = async () => {
         try {
             setSubmitting(true);
             setError(null);
+            setQrImageError(false);
 
-            const orderPayload = createOrderPayload('AWAITING_PAYMENT');
+            const orderPayload = createOrderPayload('BANK_TRANSFER');
             console.log("Creating QR order with payload:", orderPayload);
             
             const result = await orderService.createOrder(orderPayload);
             console.log("QR Order creation result:", result);
 
             if (result.success && result.data) {
-                // Store order data for payment confirmation
-                setPendingOrderData({
-                    orderId: result.data.id || result.data.orderId,
-                    orderCode: result.data.orderCode || `ORD${Date.now()}`,
-                    total: total
-                });
+                const paymentData = result.data.payment;
+                
+                const orderData: OrderData = {
+                    orderId: result.data.id,
+                    orderCode: result.data.orderNumber,
+                    total: result.data.totalAmount || total,
+                    payment: paymentData ? {
+                        paymentId: paymentData.id,
+                        paymentCode: paymentData.paymentCode,
+                        paymentMethod: paymentData.paymentMethod,
+                        paymentStatus: paymentData.status,
+                        amount: paymentData.amount,
+                        qrCodeData: paymentData.qrCodeData,
+                        bankCode: paymentData.bankCode,
+                        accountNumber: paymentData.bankAccountNumber,
+                        accountName: paymentData.bankAccountName,
+                        transferContent: result.data.orderNumber
+                    } : undefined
+                };
+
+                console.log("Parsed order data:", orderData);
+                
+                setPendingOrderData(orderData);
                 setPaymentStatus('pending');
                 setShowQRCode(true);
+
+                // ✅ START POLLING after showing QR
+                if (orderData.payment?.paymentId) {
+                    startPaymentPolling(orderData.payment.paymentCode.toString());
+                }
             } else {
                 setError(result.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.');
             }
@@ -260,10 +357,10 @@ export default function Checkout() {
         }
     };
 
-    // Confirm payment after user says they paid
+    // ✅ Manual payment confirmation (for user to click "I've paid")
     const handlePaymentConfirmation = async () => {
-        if (!pendingOrderData) {
-            setError('Không tìm thấy thông tin đơn hàng.');
+        if (!pendingOrderData?.payment?.paymentId) {
+            setError('Không tìm thấy thông tin thanh toán.');
             return;
         }
 
@@ -271,46 +368,41 @@ export default function Checkout() {
             setPaymentStatus('checking');
             setError(null);
 
-            // Option 1: Simply mark as paid (trust user)
-            // Option 2: Check with payment gateway API
-            // Option 3: Manual verification by staff
-
-            // For now, we'll update the order status to PAID
-            const updateResult = await orderService.updatePaymentStatus(
-                pendingOrderData.orderId, 
-                'PAID'
+            // Check current payment status
+            const statusResult = await orderService.checkPaymentStatus(
+                pendingOrderData.payment.paymentId.toString()
             );
 
-            console.log("Payment update result:", updateResult);
+            console.log("Manual payment check result:", statusResult);
 
-            if (updateResult.success) {
-                setPaymentStatus('confirmed');
-                reset(); // Clear cart
+            if (statusResult.success && statusResult.data) {
+                const status = statusResult.data.status || statusResult.data.paymentStatus;
                 
-                // Show success and redirect
-                setTimeout(() => {
-                    setOrderPlaced(true);
-                }, 1500);
-                
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 4500);
+                if (status === 'PAID' || status === 'COMPLETED') {
+                    handlePaymentSuccess();
+                } else {
+                    // Payment not confirmed yet
+                    setPaymentStatus('pending');
+                    setError('Chưa nhận được thanh toán. Vui lòng đợi hoặc thử lại sau ít phút.');
+                }
             } else {
-                setPaymentStatus('failed');
-                setError(updateResult.message || 'Không thể xác nhận thanh toán. Vui lòng liên hệ hỗ trợ.');
+                setPaymentStatus('pending');
+                setError(statusResult.message || 'Không thể kiểm tra thanh toán. Vui lòng thử lại.');
             }
         } catch (error: any) {
             console.error('Payment confirmation error:', error);
-            setPaymentStatus('failed');
-            setError(error.message || 'Đã xảy ra lỗi khi xác nhận thanh toán.');
+            setPaymentStatus('pending');
+            setError(error.message || 'Đã xảy ra lỗi khi kiểm tra thanh toán.');
         }
     };
 
-    // Cancel QR payment and go back
+    // ✅ Updated cancel function to stop polling
     const handleCancelQRPayment = async () => {
+        // Stop polling first
+        stopPaymentPolling();
+        
         if (pendingOrderData) {
             try {
-                // Optionally cancel/delete the pending order
                 await orderService.cancelOrder(pendingOrderData.orderId, "QR payment canceled by user");
             } catch (error) {
                 console.error('Error canceling order:', error);
@@ -319,6 +411,33 @@ export default function Checkout() {
         setPendingOrderData(null);
         setShowQRCode(false);
         setPaymentStatus('pending');
+        setQrImageError(false);
+        setPollingCount(0);
+        setError(null);
+    };
+
+    // Format currency to VND
+    const formatVND = (amount: number) => {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND'
+        }).format(amount);
+    };
+
+    // Get amount in VND
+    const getAmountInVND = () => {
+        if (pendingOrderData?.payment?.amount) {
+            return pendingOrderData.payment.amount;
+        }
+        return Math.round(total * 24000);
+    };
+
+    // ✅ Calculate remaining time
+    const getRemainingTime = () => {
+        const remainingSeconds = (MAX_POLLING_ATTEMPTS - pollingCount) * (POLLING_INTERVAL / 1000);
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     };
 
     if (loading) {
@@ -355,7 +474,8 @@ export default function Checkout() {
         );
     }
 
-    if (showQRCode) {
+    // ✅ Updated QR Code display with polling indicator
+    if (showQRCode && pendingOrderData) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
                 <div className="max-w-lg mx-auto bg-white rounded-2xl shadow-2xl p-8">
@@ -364,10 +484,26 @@ export default function Checkout() {
                     </h2>
                     
                     {/* Order Info */}
-                    {pendingOrderData && (
-                        <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                            <p className="text-sm text-gray-600">Mã đơn hàng:</p>
-                            <p className="font-bold text-lg text-gray-800">{pendingOrderData.orderCode}</p>
+                    <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                        <p className="text-sm text-gray-600">Mã đơn hàng:</p>
+                        <p className="font-bold text-lg text-gray-800">{pendingOrderData.orderCode}</p>
+                    </div>
+
+                    {/* ✅ Polling Status Indicator */}
+                    {paymentStatus === 'pending' && (
+                        <div className="bg-blue-50 p-3 rounded-lg mb-4 flex items-center justify-between">
+                            <div className="flex items-center">
+                                <div className="relative mr-3">
+                                    <div className="w-3 h-3 bg-green-500 rounded-full animate-ping absolute"></div>
+                                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                </div>
+                                <span className="text-sm text-gray-700">
+                                    Đang chờ thanh toán...
+                                </span>
+                            </div>
+                            <span className="text-xs text-gray-500 font-mono">
+                                {getRemainingTime()}
+                            </span>
                         </div>
                     )}
                     
@@ -375,51 +511,58 @@ export default function Checkout() {
                         <div className="text-center mb-4">
                             <p className="text-gray-700 font-semibold mb-2">Số tiền cần thanh toán:</p>
                             <p className="text-4xl font-bold text-[#D4AF37]">
-                                {(total * 24000).toLocaleString('vi-VN')}đ
+                                {formatVND(getAmountInVND())}
                             </p>
-                            <p className="text-sm text-gray-500">(~${total.toFixed(2)} USD)</p>
                         </div>
                         
                         {/* QR Code Display */}
                         <div className="bg-white p-6 rounded-xl shadow-inner flex items-center justify-center">
-                            {pendingOrderData ? (
-                                <div className="text-center">
-                                    {/* Option 1: Use VietQR API */}
+                            <div className="text-center">
+                                {pendingOrderData.payment?.qrCodeData && !qrImageError ? (
                                     <img 
-                                        src={generateVietQRUrl(
-                                            pendingOrderData.orderCode, 
-                                            Math.round(total * 24000)
-                                        )}
+                                        src={pendingOrderData.payment.qrCodeData}
                                         alt="QR Code thanh toán"
-                                        className="w-64 h-64 mx-auto"
-                                        onError={(e) => {
-                                            // Fallback if VietQR fails
-                                            (e.target as HTMLImageElement).style.display = 'none';
+                                        className="w-64 h-64 mx-auto rounded-lg"
+                                        onError={() => {
+                                            console.error('QR image failed to load');
+                                            setQrImageError(true);
+                                        }}
+                                        onLoad={() => {
+                                            console.log('QR image loaded successfully');
                                         }}
                                     />
-                                    
-                                    {/* Bank Transfer Info */}
-                                    <div className="mt-4 text-left bg-gray-50 p-4 rounded-lg">
-                                        <p className="text-sm font-semibold text-gray-700 mb-2">
-                                            Hoặc chuyển khoản thủ công:
-                                        </p>
-                                        <div className="space-y-1 text-sm text-gray-600">
-                                            <p><span className="font-medium">Ngân hàng:</span> MB Bank</p>
-                                            <p><span className="font-medium">Số TK:</span> 0123456789</p>
-                                            <p><span className="font-medium">Chủ TK:</span> NGUYEN VAN A</p>
-                                            <p><span className="font-medium">Nội dung:</span> {pendingOrderData.orderCode}</p>
+                                ) : (
+                                    <div className="w-64 h-64 bg-gray-100 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300">
+                                        <div className="text-center p-4">
+                                            <span className="text-4xl mb-2 block">📱</span>
+                                            <p className="text-sm text-gray-600">
+                                                {qrImageError 
+                                                    ? 'Không thể tải mã QR. Vui lòng chuyển khoản thủ công.' 
+                                                    : 'Đang tải mã QR...'}
+                                            </p>
                                         </div>
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="w-64 h-64 bg-gray-200 flex items-center justify-center rounded-lg">
-                                    <div className="text-center">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#D4AF37] mx-auto mb-2"></div>
-                                        <p className="text-sm text-gray-600">Đang tạo mã QR...</p>
-                                    </div>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
+
+                        {/* Bank Info for manual transfer */}
+                        {pendingOrderData.payment && (
+                            <div className="mt-4 p-4 bg-white rounded-lg text-sm">
+                                <p className="font-semibold mb-2 text-gray-800">Thông tin chuyển khoản:</p>
+                                <div className="space-y-1 text-gray-700">
+                                    <p><span className="text-gray-500">Ngân hàng:</span> {pendingOrderData.payment.bankCode}</p>
+                                    <p><span className="text-gray-500">Số TK:</span> {pendingOrderData.payment.accountNumber}</p>
+                                    <p><span className="text-gray-500">Chủ TK:</span> {pendingOrderData.payment.accountName}</p>
+                                    <p>
+                                        <span className="text-gray-500">Nội dung:</span>{' '}
+                                        <span className="font-bold text-red-600">
+                                            Thanh toan don hang {pendingOrderData.orderCode}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Instructions */}
@@ -431,18 +574,18 @@ export default function Checkout() {
                             <li>Quét mã QR hoặc nhập thông tin chuyển khoản</li>
                             <li>
                                 <span className="text-red-600 font-medium">
-                                    Quan trọng: Ghi đúng nội dung "{pendingOrderData?.orderCode}"
+                                    Quan trọng: Ghi đúng nội dung "Thanh toan don hang {pendingOrderData.orderCode}"
                                 </span>
                             </li>
-                            <li>Xác nhận thanh toán và nhấn "Tôi đã thanh toán"</li>
+                            <li>Xác nhận thanh toán - hệ thống sẽ tự động kiểm tra</li>
                         </ol>
                     </div>
 
-                    {/* Payment Status */}
+                    {/* Payment Status Messages */}
                     {paymentStatus === 'checking' && (
                         <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center">
                             <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-yellow-600 mr-3"></div>
-                            <p className="text-yellow-700">Đang xác nhận thanh toán...</p>
+                            <p className="text-yellow-700">Đang kiểm tra thanh toán...</p>
                         </div>
                     )}
 
@@ -469,17 +612,17 @@ export default function Checkout() {
                         }`}
                     >
                         {paymentStatus === 'checking' 
-                            ? 'Đang xác nhận...' 
+                            ? 'Đang kiểm tra...' 
                             : paymentStatus === 'confirmed'
                                 ? 'Đã xác nhận ✓'
-                                : 'Tôi đã thanh toán'
+                                : 'Kiểm tra thanh toán'
                         }
                     </button>
                     
                     <button
                         onClick={handleCancelQRPayment}
                         disabled={paymentStatus === 'checking' || paymentStatus === 'confirmed'}
-                        className="w-full py-3 mt-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-300 font-semibold"
+                        className="w-full py-3 mt-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-300 font-semibold disabled:opacity-50"
                     >
                         Hủy và quay lại
                     </button>
@@ -675,7 +818,6 @@ export default function Checkout() {
                                 </div>
 
                                 <div className="space-y-4">
-                                    {/* Cash on Delivery */}
                                     <label
                                         className={`block p-6 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
                                             paymentMethod === 'cash'
@@ -706,7 +848,6 @@ export default function Checkout() {
                                         </div>
                                     </label>
 
-                                    {/* QR Code Payment */}
                                     <label
                                         className={`block p-6 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
                                             paymentMethod === 'qr'
@@ -764,7 +905,7 @@ export default function Checkout() {
                                             <div className="flex-1">
                                                 <h4 className="font-semibold text-gray-800 text-sm">{item.name}</h4>
                                                 <p className="text-gray-600 text-sm">x{item.quantity}</p>
-                                                <p className="text-[#D4AF37] font-bold">${(item.price * item.quantity).toFixed(2)}</p>
+                                                <p className="text-[#D4AF37] font-bold">{formatVND(item.price * item.quantity)}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -773,17 +914,17 @@ export default function Checkout() {
                                 <div className="space-y-3 mb-6 pb-6 border-b-2 border-gray-200">
                                     <div className="flex justify-between text-gray-700">
                                         <span>Tạm tính:</span>
-                                        <span className="font-semibold">${subtotal.toFixed(2)}</span>
+                                        <span className="font-semibold">{formatVND(subtotal)}</span>
                                     </div>
                                     <div className="flex justify-between text-gray-700">
                                         <span>Phí giao hàng:</span>
-                                        <span className="font-semibold">${deliveryFee.toFixed(2)}</span>
+                                        <span className="font-semibold">{formatVND(deliveryFee)}</span>
                                     </div>
                                 </div>
 
                                 <div className="flex justify-between text-xl font-bold mb-6">
                                     <span>Tổng cộng:</span>
-                                    <span className="text-[#D4AF37]">${total.toFixed(2)}</span>
+                                    <span className="text-[#D4AF37]">{formatVND(total)}</span>
                                 </div>
 
                                 <button
