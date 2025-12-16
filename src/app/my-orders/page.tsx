@@ -11,12 +11,14 @@ import { Icon } from "@iconify/react";
 import RatingFeedback from "@/components/order/RatingFeedback";
 
 import orderService from "@/services/orderService";
+import { useNoteStore } from "@/stores/useNoteStore";
 
 const inriaSerif = Inria_Serif({ weight: ["300"], subsets: ["latin"] });
 const italiana = Italiana({ weight: ["400"], subsets: ["latin"] });
 
 interface OrderItem {
   id: number | string;
+  menuItemId?: number | string;
   name: string;
   quantity: number;
   price: number;
@@ -194,6 +196,7 @@ const CancelModal = ({ isOpen, onClose, onConfirm, orderNumber }: CancelModalPro
 
 export default function OrderHistory() {
   const router = useRouter();
+  const { setQuantity, reset } = useNoteStore();
 
   // API integration state
   const [loading, setLoading] = useState(true);
@@ -203,6 +206,25 @@ export default function OrderHistory() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [expandedOrder, setExpandedOrder] = useState<number | string | null>(null);
   const [ordersList, setOrdersList] = useState<Order[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Simple in-page notification UI instead of browser alerts
+  const [notification, setNotification] = useState<{
+    type: "success" | "error" | "info";
+    message: string;
+  } | null>(null);
+
+  const showNotification = (
+    message: string,
+    type: "success" | "error" | "info" = "info"
+  ) => {
+    setNotification({ message, type });
+    // Auto-hide after 4 seconds
+    setTimeout(() => {
+      setNotification(null);
+    }, 4000);
+  };
 
   const [cancelModal, setCancelModal] = useState<{
     isOpen: boolean;
@@ -227,6 +249,7 @@ export default function OrderHistory() {
 
     const items = o.items.map((it: any) => ({
       id: it.id,
+      menuItemId: it.menuItemId,
       name: it.menuItemName,
       quantity: it.quantity,
       price: it.unitPrice,
@@ -266,7 +289,7 @@ export default function OrderHistory() {
     (async () => {
       setLoading(true);
       setError(null);
-      const res = await orderService.getMyOrders({ page: 0, size: 50 });
+      const res = await orderService.getMyOrders({ page: 0, size: 50 }); 
       if (!mounted) return;
 
       if (!res?.success) {
@@ -291,6 +314,17 @@ export default function OrderHistory() {
     return ordersList.filter((order) => order.status === activeFilter);
   }, [ordersList, activeFilter]);
 
+  // Reset to first page when filter or data changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, filteredOrders.length]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+
   const toggleOrderDetails = (orderId: number | string) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
@@ -305,11 +339,11 @@ export default function OrderHistory() {
 
   const confirmCancelOrder = async () => {
     if (!cancelModal.orderId) return;
-    const res = await orderService.cancelOrder(String(cancelModal.orderId), {
-      reason: "Customer requested cancellation",
-    });
+    const res = await orderService.cancelOrder(String(cancelModal.orderId), "Customer requested cancellation");
+
+
     if (!res?.success) {
-      alert(res?.message || "Failed to cancel order");
+      showNotification(res?.message || "Failed to cancel order", "error");
     } else {
       setOrdersList((prev) =>
         prev.map((o) =>
@@ -322,15 +356,37 @@ export default function OrderHistory() {
 
   const handleReorder = async (order: Order) => {
     try {
-      const res = await orderService.reorder(String(order.id));
-      if (res?.success) {
-        alert("Order placed successfully!");
-        router.push("/my_order");
-      } else {
-        alert(res?.message || "Failed to reorder");
+      // Clear current cart so only reordered items are present
+      reset();
+
+      // Add each order item to the cart
+      let itemsAdded = 0;
+
+      for (const item of order.items) {
+        // Check if menuItemId is available
+        if (item.menuItemId) {
+          const menuItemId = Number(item.menuItemId);
+          const quantity = item.quantity;
+          setQuantity(menuItemId, quantity);
+          itemsAdded++;
+        } else {
+          console.warn(`Item ${item.name} does not have menuItemId, skipping...`);
+        }
       }
+
+      if (itemsAdded === 0) {
+        showNotification(
+          "Unable to add items to cart. Some items may not be available.",
+          "error"
+        );
+        return;
+      }
+
+      // Navigate to checkout page
+      router.push("/checkout_page");
     } catch (error) {
-      alert("An error occurred while reordering");
+      console.error("Error adding items to cart:", error);
+      showNotification("An error occurred while adding items to cart", "error");
     }
   };
 
@@ -338,7 +394,7 @@ export default function OrderHistory() {
   const handleRating = async (orderId: number | string, rating: number, feedback: string) => {
     const res = await orderService.submitOrderRating(String(orderId), rating, feedback);
     if (!res?.success) {
-      alert(res?.message || "Failed to save rating");
+      showNotification(res?.message || "Failed to save rating", "error");
       return;
     }
     
@@ -350,8 +406,8 @@ export default function OrderHistory() {
           : o
       )
     );
-    
-    alert("Thank you for your rating!");
+
+    showNotification("Thank you for your rating!", "success");
   };
 
   // Open detailed review modal for per-dish ratings
@@ -367,27 +423,64 @@ export default function OrderHistory() {
     }
 
     try {
-      // Submit each dish rating
-      const promises = finalList.map((item, index) => {
-        const orderItem = reviewModal.order!.items[index];
+      // Submit each dish rating - match by name since we only send rated items
+      const promises = finalList.map((item) => {
+        // Find the matching order item by name
+        const orderItem = reviewModal.order!.items.find(
+          (oi) => oi.name === item.name
+        );
+        
+        if (!orderItem) {
+          console.warn("Order item not found for:", item.name);
+          return Promise.resolve({ success: false, message: `Item ${item.name} not found in order` });
+        }
+        
         if (item.stars > 0) {
+          console.log("Submitting rating:", {
+            orderId: reviewModal.order!.id,
+            itemId: orderItem.id,
+            itemName: item.name,
+            rating: item.stars,
+            feedback: item.feedback || ""
+          });
           return orderService.submitDishRating(
             String(reviewModal.order!.id),
             String(orderItem.id),
             item.stars,
-            item.review || ""
+            item.feedback || ""
           );
         }
         return Promise.resolve({ success: true });
       });
 
       const results = await Promise.all(promises);
-      const failed = results.filter((r) => !r.success);
+      console.log("Rating submission results:", results);
+      const failed = results.filter((r) => !r?.success);
 
       if (failed.length > 0) {
-        alert("Some ratings failed to submit. Please try again.");
+        console.error("Failed ratings:", failed);
+        const errorMessages = failed.map(f => (f as any).message || 'Unknown error').join(', ');
+        showNotification(
+          `Some ratings failed to submit: ${errorMessages}`,
+          "error"
+        );
       } else {
-        alert("Thank you for your detailed feedback!");
+        const ratedCount = finalList.filter(item => item.stars > 0).length;
+        const totalCount = reviewModal.order!.items.length;
+        
+        if (ratedCount === totalCount) {
+          showNotification(
+            "Thank you for your detailed feedback on all items!",
+            "success"
+          );
+        } else {
+          showNotification(
+            `Thank you! Your feedback for ${ratedCount} item${
+              ratedCount > 1 ? "s" : ""
+            } has been saved.`,
+            "success"
+          );
+        }
         
         // Reload orders to get updated ratings
         const res = await orderService.getMyOrders({ page: 0, size: 50 });
@@ -396,7 +489,8 @@ export default function OrderHistory() {
         }
       }
     } catch (error) {
-      alert("An error occurred while submitting ratings");
+      console.error("Error submitting ratings:", error);
+      alert("An error occurred while submitting ratings: " + (error instanceof Error ? error.message : String(error)));
     }
 
     setReviewModal({ isOpen: false, order: null });
@@ -416,6 +510,41 @@ export default function OrderHistory() {
   // UI Rendering
   return (
     <section className="relative">
+      {/* Notification Toast */}
+      {notification && (
+        <div className="fixed top-24 right-6 z-50">
+          <div
+            className={`min-w-[260px] max-w-sm px-4 py-3 rounded shadow-lg border text-sm ${
+              notification.type === "success"
+                ? "bg-green-50 border-green-500 text-green-800"
+                : notification.type === "error"
+                ? "bg-red-50 border-red-500 text-red-800"
+                : "bg-gray-50 border-gray-400 text-gray-800"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              <Icon
+                icon={
+                  notification.type === "success"
+                    ? "mdi:check-circle-outline"
+                    : notification.type === "error"
+                    ? "mdi:alert-circle-outline"
+                    : "mdi:information-outline"
+                }
+                className="mt-0.5 text-lg"
+              />
+              <div className="flex-1 text-left">{notification.message}</div>
+              <button
+                onClick={() => setNotification(null)}
+                className="ml-2 text-xs opacity-60 hover:opacity-100"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Cancel Confirmation Modal */}
       <CancelModal
         isOpen={cancelModal.isOpen}
@@ -523,7 +652,7 @@ export default function OrderHistory() {
           {/* Orders List */}
           {filteredOrders.length > 0 ? (
             <div className="flex flex-col gap-6 mx-auto">
-              {filteredOrders.map((order, i) => {
+              {paginatedOrders.map((order, i) => {
                 const isLightBackground = i % cardColors.length !== 2;
                 return (
                   <div
@@ -577,7 +706,7 @@ export default function OrderHistory() {
                       </div>
                       <div className={`text-right ${isLightBackground ? "text-black" : "text-white"}`}>
                         <p className="text-sm opacity-75">Total Amount</p>
-                        <p className="text-3xl font-bold">${order.total.toFixed(2)}</p>
+                        <p className="text-3xl font-bold">{order.total.toFixed(2)} VND</p>
                       </div>
                     </div>
 
@@ -667,7 +796,7 @@ export default function OrderHistory() {
                                   </div>
                                 )}
                               </div>
-                              <span className="font-semibold text-lg">${(item.price * item.quantity).toFixed(2)}</span>
+                              <span className="font-semibold text-lg">{(item.price * item.quantity).toFixed(2)} VND</span>
                             </div>
                           ))}
                         </div>
@@ -676,16 +805,16 @@ export default function OrderHistory() {
                         <div className={`mt-4 pt-4 border-t ${isLightBackground ? "border-black/20" : "border-white/30"}`}>
                           <div className="flex justify-between items-center mb-2">
                             <span>Subtotal</span>
-                            <span>${order.subtotal.toFixed(2)}</span>
+                            <span>{order.subtotal.toFixed(2)} VND</span>
                           </div>
                           <div className="flex justify-between items-center mb-2">
                             <span>Tax (10%)</span>
-                            <span>${(order.total * 0.1).toFixed(2)}</span>
+                            <span>{(order.subtotal * 0.1).toFixed(2)} VND</span>
                           </div>
                           {order.deliveryType === "delivery" && (
                             <div className="flex justify-between items-center mb-2">
                               <span>Delivery Fee</span>
-                              <span>$5.00</span>
+                              <span>5.00 VND</span>
                             </div>
                           )}
                           <div
@@ -695,7 +824,7 @@ export default function OrderHistory() {
                           >
                             <span>Total</span>
                             <span>
-                              ${(order.subtotal * 1.1 + (order.deliveryType === "delivery" ? 5 : 0)).toFixed(2)}
+                              {(order.subtotal * 1.1 + (order.deliveryType === "delivery" ? 5 : 0)).toFixed(2)} VND
                             </span>
                           </div>
                         </div>
@@ -718,17 +847,16 @@ export default function OrderHistory() {
                     {/* Action Buttons */}
                     <div className="flex justify-end gap-3 mt-4">
                       {/* Show track/cancel for pending, confirmed, preparing, ready statuses */}
-                      {(order.status === "pending" || order.status === "confirmed" || 
-                        order.status === "preparing" || order.status === "ready") && (
+                      {(order.status === "pending") && (
                         <>
-                          <button
+                          {/* <button
                             onClick={() => handleTrackOrder(order.id)}
                             className={`px-6 py-2 border-2 transition duration-300 ${
                               isLightBackground ? "border-black hover:bg-black hover:text-white" : "border-white hover:bg-white hover:text-black"
                             }`}
                           >
                             Track Order
-                          </button>
+                          </button> */}
                           <button
                             onClick={() => handleCancelOrder(order.id, order.orderNumber)}
                             className={`px-6 py-2 border-2 transition duration-300 ${
@@ -790,6 +918,38 @@ export default function OrderHistory() {
                   </div>
                 );
               })}
+              {/* Pagination Controls */}
+              {filteredOrders.length > itemsPerPage && (
+                <div className="flex items-center justify-center gap-4 mt-6">
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className={`px-4 py-2 border-2 transition duration-300 ${
+                      currentPage === 1
+                        ? "border-gray-300 text-gray-300 cursor-not-allowed"
+                        : "border-black hover:bg-black hover:text-white"
+                    }`}
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-gray-700">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                    }
+                    disabled={currentPage === totalPages}
+                    className={`px-4 py-2 border-2 transition duration-300 ${
+                      currentPage === totalPages
+                        ? "border-gray-300 text-gray-300 cursor-not-allowed"
+                        : "border-black hover:bg-black hover:text-white"
+                    }`}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             // Empty State

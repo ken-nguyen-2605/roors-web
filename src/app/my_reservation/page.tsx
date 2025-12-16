@@ -1,4 +1,4 @@
-// Reservation Date -> dtb
+// Reservation History Page - Updated with correct API interface
 
 "use client";
 
@@ -23,29 +23,34 @@ const italiana = Italiana({
 
 interface Reservation {
   id: number;
-  reservationDate: string;
-  reservationTime: string;  
-  numberOfGuests: number;
+  user: {
+    id: number;
+    username: string;
+  };
+  diningTable: {
+    id: number;
+    name: string;
+    floor: string;
+    capacity: number;
+  };
   status: "CONFIRMED" | "ARRIVED" | "CANCELLED" | "NO_SHOW";
-  tableNumber?: string;
+  phone: string;
+  numberOfGuests: number;
+  startTime: string; // ISO datetime format
+  endTime: string; // ISO datetime format
   specialRequests?: string;
-  customerName?: string;
-  customerPhone?: string;
-  customerEmail?: string;
 }
 
 const statusColors = {
-  PENDING: "#FF9800",
   CONFIRMED: "#4CAF50",
   ARRIVED: "#2196F3",
-  COMPLETED: "#989793",
   CANCELLED: "#D32F2F",
   NO_SHOW: "#757575",
 };
 
 const cardColors = ["#F5F4ED", "#FFFFFF", "#7A7A76", "#989793"];
 
-type FilterType = "all" | "PENDING" | "CONFIRMED" | "ARRIVED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+type FilterType = "all" | "CONFIRMED" | "ARRIVED" | "CANCELLED" | "NO_SHOW";
 
 export default function ReservationHistory() {
   const router = useRouter();
@@ -53,6 +58,8 @@ export default function ReservationHistory() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Fetch reservations on component mount
   useEffect(() => {
@@ -66,23 +73,32 @@ export default function ReservationHistory() {
       const response = await reservationService.getMyReservations();
       if (response.success && response.data) {
         // Transform data
-        const transformedReservations: Reservation[] = response.data.map((item: any) => ({
-          id: item.id,
-          reservationDate: item.startTime.split('T')[0], // e.g., "2025-11-15"
-          reservationTime: item.startTime.split('T')[1], // e.g., "12:00:00"
-          numberOfGuests: item.numberOfGuests,
-          status: item.status,
-          tableNumber: item.diningTable?.name,
-          specialRequests: item.specialRequests, // Add more mapping if needed
-          customerName: item.user?.username, // Or however you want to get customer info
-          customerPhone: item.phone,
-          customerEmail: item.user?.email, // Update based on actual data
-        }));
+        const transformedReservations: Reservation[] = response.data.map(
+          (item: any) => ({
+            id: item.id,
+            user: {
+              id: item.user?.id,
+              username: item.user?.username,
+            },
+            diningTable: {
+              id: item.diningTable?.id,
+              name: item.diningTable?.name,
+              floor: item.diningTable?.floor,
+              capacity: item.diningTable?.capacity,
+            },
+            status: item.status,
+            phone: item.phone,
+            numberOfGuests: item.numberOfGuests,
+            startTime: item.startTime,
+            endTime: item.endTime,
+            specialRequests: item.specialRequests,
+          })
+        );
 
-        // Sort transformed data by date+time (newest first)
+        // Sort transformed data by start time (newest first)
         const sortedReservations = transformedReservations.sort((a, b) => {
-          const dateA = new Date(`${a.reservationDate}T${a.reservationTime}`);
-          const dateB = new Date(`${b.reservationDate}T${b.reservationTime}`);
+          const dateA = new Date(a.startTime);
+          const dateB = new Date(b.startTime);
           return dateB.getTime() - dateA.getTime();
         });
 
@@ -104,6 +120,17 @@ export default function ReservationHistory() {
       ? reservations
       : reservations.filter((res) => res.status === activeFilter);
 
+  // Reset to first page when filter changes or data updates
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, reservations.length]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredReservations.length / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedReservations = filteredReservations.slice(startIndex, endIndex);
+
   // Categorize reservations for quick filter buttons
   const confirmedReservations = reservations.filter(
     (res) => res.status === "CONFIRMED"
@@ -114,10 +141,28 @@ export default function ReservationHistory() {
   const cancelledReservations = reservations.filter(
     (res) => res.status === "CANCELLED"
   );
-  const NoShowReservations = reservations.filter(
+  const noShowReservations = reservations.filter(
     (res) => res.status === "NO_SHOW"
   );
-  
+
+  // Format date from ISO string
+  const formatDate = (isoString: string) => {
+    return new Date(isoString).toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  // Format time from ISO string
+  const formatTime = (isoString: string) => {
+    return new Date(isoString).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
 
   // Handle cancel reservation
   const handleCancelReservation = async (reservationId: number) => {
@@ -147,18 +192,34 @@ export default function ReservationHistory() {
     router.push(`/reservations/modify/${reservationId}`);
   };
 
-  // Handle book again
-  const handleBookAgain = () => {
-    router.push("/reservations/new");
-  };
-
-  // Check if reservation can be modified/cancelled
+  // Check if reservation can be modified/cancelled (only CONFIRMED reservations)
   const canModifyReservation = (reservation: Reservation) => {
-    return reservationService.canModifyReservation(reservation);
+    if (reservation.status !== "CONFIRMED") return false;
+    
+    // Check if reservation is in the future
+    const reservationDate = new Date(reservation.startTime);
+    const now = new Date();
+    return reservationDate > now;
   };
 
   const canCancelReservation = (reservation: Reservation) => {
-    return reservationService.canCancelReservation(reservation);
+    if (reservation.status !== "CONFIRMED") return false;
+    
+    // Check if reservation is in the future
+    const reservationDate = new Date(reservation.startTime);
+    const now = new Date();
+    return reservationDate > now;
+  };
+
+  // Get status display text
+  const getStatusDisplay = (status: string) => {
+    const statusMap: Record<string, string> = {
+      CONFIRMED: "Confirmed",
+      ARRIVED: "Arrived",
+      CANCELLED: "Cancelled",
+      NO_SHOW: "No Show",
+    };
+    return statusMap[status] || status;
   };
 
   return (
@@ -260,7 +321,7 @@ export default function ReservationHistory() {
           <button
             onClick={() => setActiveFilter("ARRIVED")}
             className={`px-8 py-2 border-2 border-black transition duration-300 ${
-              activeFilter === "COMPLETED"
+              activeFilter === "ARRIVED"
                 ? "bg-black text-white"
                 : "hover:bg-black hover:text-white"
             }`}
@@ -270,12 +331,12 @@ export default function ReservationHistory() {
           <button
             onClick={() => setActiveFilter("NO_SHOW")}
             className={`px-8 py-2 border-2 border-black transition duration-300 ${
-              activeFilter === "COMPLETED"
+              activeFilter === "NO_SHOW"
                 ? "bg-black text-white"
                 : "hover:bg-black hover:text-white"
             }`}
           >
-            No show ({NoShowReservations.length})
+            No Show ({noShowReservations.length})
           </button>
           <button
             onClick={() => setActiveFilter("CANCELLED")}
@@ -333,7 +394,7 @@ export default function ReservationHistory() {
         {/* Reservations List */}
         {!loading && !error && filteredReservations.length > 0 && (
           <div className="flex flex-col gap-6 mx-auto">
-            {filteredReservations.map((reservation, i) => (
+            {paginatedReservations.map((reservation, i) => (
               <div
                 key={reservation.id}
                 className="relative flex flex-col w-[1100px] shadow-xl px-8 py-6 rounded-lg"
@@ -352,7 +413,7 @@ export default function ReservationHistory() {
                       backgroundColor: statusColors[reservation.status],
                     }}
                   >
-                    {reservationService.getStatusDisplay(reservation.status)}
+                    {getStatusDisplay(reservation.status)}
                   </span>
                 </div>
 
@@ -380,15 +441,7 @@ export default function ReservationHistory() {
                           />
                         </svg>
                         <span className="text-2xl font-medium">
-                          {new Date(reservation.reservationDate).toLocaleDateString(
-                            "en-US",
-                            {
-                              weekday: "long",
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            }
-                          )}
+                          {formatDate(reservation.startTime)}
                         </span>
                       </div>
                     </div>
@@ -409,7 +462,9 @@ export default function ReservationHistory() {
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                           />
                         </svg>
-                        <span>{reservation.reservationTime}</span>
+                        <span>
+                          {formatTime(reservation.startTime)} - {formatTime(reservation.endTime)}
+                        </span>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -433,25 +488,44 @@ export default function ReservationHistory() {
                         </span>
                       </div>
 
-                      {reservation.tableNumber && (
-                        <div className="flex items-center gap-2">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                            />
-                          </svg>
-                          <span>{reservation.tableNumber}</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          />
+                        </svg>
+                        <span>
+                          Table {reservation.diningTable.name} ({reservation.diningTable.floor})
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Phone Number */}
+                    <div className="flex items-center gap-2 text-sm">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                        />
+                      </svg>
+                      <span>{reservation.phone}</span>
                     </div>
 
                     {/* Special Requests */}
@@ -477,42 +551,57 @@ export default function ReservationHistory() {
                   </div>
 
                   {/* Action Buttons */}
-                  {(reservation.status === "CONFIRMED") && (
+                  {reservation.status === "CONFIRMED" && canCancelReservation(reservation) && (
                     <div className="flex flex-col gap-2">
-                      {canModifyReservation(reservation) && (
-                        <button
-                          onClick={() => handleModifyReservation(reservation.id)}
-                          className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300"
-                        >
-                          Modify
-                        </button>
-                      )}
-                      {canCancelReservation(reservation) && (
-                        <button
-                          onClick={() => handleCancelReservation(reservation.id)}
-                          className={`px-6 py-2 border-2 transition duration-300 ${
-                            i % cardColors.length === 2
-                              ? "border-white hover:bg-white hover:text-black"
-                              : "border-black hover:bg-black hover:text-white"
-                          }`}
-                        >
-                          Cancel
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleCancelReservation(reservation.id)}
+                        className={`px-6 py-2 border-2 transition duration-300 ${
+                          i % cardColors.length === 2
+                            ? "border-white hover:bg-white hover:text-black"
+                            : "border-black hover:bg-black hover:text-white"
+                        }`}
+                      >
+                        Cancel
+                      </button>
                     </div>
                   )}
 
-                  {reservation.status === "ARRIVED" && (
-                    <button
-                      onClick={handleBookAgain}
-                      className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300"
-                    >
-                      Book Again
-                    </button>
-                  )}
+                  {/* No "Book Again" button for arrived reservations */}
                 </div>
               </div>
             ))}
+            {/* Pagination Controls */}
+            {filteredReservations.length > itemsPerPage && (
+              <div className="flex items-center justify-center gap-4 mt-6">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 border-2 transition duration-300 ${
+                    currentPage === 1
+                      ? "border-gray-300 text-gray-300 cursor-not-allowed"
+                      : "border-black hover:bg-black hover:text-white"
+                  }`}
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-gray-700">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                  className={`px-4 py-2 border-2 transition duration-300 ${
+                    currentPage === totalPages
+                      ? "border-gray-300 text-gray-300 cursor-not-allowed"
+                      : "border-black hover:bg-black hover:text-white"
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -539,14 +628,12 @@ export default function ReservationHistory() {
               />
             </svg>
             <p className="text-2xl text-gray-500">
-              No {activeFilter !== "all" ? reservationService.getStatusDisplay(activeFilter as any).toLowerCase() : ""} reservations found
+              No{" "}
+              {activeFilter !== "all"
+                ? getStatusDisplay(activeFilter).toLowerCase()
+                : ""}{" "}
+              reservations found
             </p>
-            <button
-              onClick={handleBookAgain}
-              className="px-8 py-3 bg-black text-white hover:bg-gray-800 transition duration-300 mt-4"
-            >
-              Make a Reservation
-            </button>
           </div>
         )}
       </section>

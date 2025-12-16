@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useScrollTrigger } from "@/utils/ScrollState";
 import { useAuth } from "@/contexts/AuthContext"; // ✅ Import the hook
 
@@ -15,8 +16,11 @@ import { Icon } from "@iconify/react";
 import { FaUserCircle } from "react-icons/fa";
 
 export default function Header({tranYdistance}: {tranYdistance: number}) {
+    const router = useRouter();
     const scrolled = useScrollTrigger(tranYdistance);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [username, setUsername] = useState("");
     const profileRef = useRef<HTMLDivElement>(null);
 
     // ✅ Use the AuthContext instead of hardcoded value
@@ -42,22 +46,30 @@ export default function Header({tranYdistance}: {tranYdistance: number}) {
 
     return (
         <div className={`fixed flex items-center justify-between h-[58px] w-full px-[42px] golden z-20 transition-[background-color] duration-300 ease-in-out ${scrolled ? "bg-black" : "backdrop-blur-lg"}`}>
-            <span className={`${italianno.className} text-4xl`} style={{ fontStyle: 'italic' }}>ROORS</span>
+            <Link href="/" className={`${italianno.className} text-4xl cursor-pointer hover:opacity-80 transition-opacity`} style={{ fontStyle: 'italic' }}>
+                ROORS
+            </Link>
+            
             <div className="flex flex-row items-center gap-[30px] h-[34px]">
                 <div className="hidden md:flex gap-10 text-xl">    
-                    <Link href="/">Home</Link>
-                    <Link href="/menu">Menus</Link>
-                    <Link href="/reservation/">Reservation</Link>
+                    <Link href="/" className="hover:text-yellow-400 transition-colors">Home</Link>
+                    <Link href="/menu" className="hover:text-yellow-400 transition-colors">Menus</Link>
+                    <Link href="/reservation" className="hover:text-yellow-400 transition-colors">Reservation</Link>
                 </div>
-                <Icon icon="mdi:bell" className="w-[28px] h-[32px] "/>
+                
+                {/* <Icon icon="mdi:bell" className="w-[28px] h-[32px] cursor-pointer hover:text-yellow-400 transition-colors"/> */}
                 
                 {/* Profile Dropdown */}
                 <div className="relative flex items-center" ref={profileRef}>
                     <button 
                         onClick={() => setIsProfileOpen(!isProfileOpen)}
-                        className="focus:outline-none hover:opacity-80 transition-opacity"
+                        className="focus:outline-none hover:opacity-80 transition-opacity flex items-center gap-2"
+                        aria-label="Profile menu"
                     >
                         <FaUserCircle className="w-[28px] h-[28px]"/>
+                        {isLoggedIn && username && (
+                            <span className="hidden md:block text-sm">{username}</span>
+                        )}
                     </button>
 
                     {/* Dropdown Menu */}

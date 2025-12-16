@@ -33,14 +33,14 @@ export function middleware(request) {
 
   // Redirect to signin if trying to access protected route without auth
   if (isProtectedRoute && !isAuthenticated) {
-    const signInUrl = new URL('/signin', request.url);
+    const signInUrl = new URL('/auth/login', request.url);
     signInUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(signInUrl);
   }
 
   // Redirect to home if trying to access auth routes while authenticated
   if (isAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL('/api', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return NextResponse.next();

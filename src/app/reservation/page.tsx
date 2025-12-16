@@ -61,6 +61,13 @@ export default function ReservationsPage() {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [confirmation, setConfirmation] = useState<{
+		name: string;
+		guests: number;
+		date: string;
+		time: string;
+		email: string;
+	} | null>(null);
 
 	// This effect runs whenever date, time, or guest count changes
 	useEffect(() => {
@@ -203,6 +210,7 @@ export default function ReservationsPage() {
 
 		setIsSubmitting(true);
 		setError(null);
+		setConfirmation(null);
 
 		try {
 			// Format time to HH:mm:ss format required by API
@@ -260,15 +268,24 @@ export default function ReservationsPage() {
 
 			console.log("Reservation created successfully:", result.data);
 
+			// Store confirmation details for UI display
+			setConfirmation({
+				name: reservation.name,
+				guests: reservation.guests,
+				date: reservation.date,
+				time: reservation.time,
+				email: reservation.email,
+			});
+
 			// Show success message
-			alert(
-				`Reservation confirmed!\n\nDetails:\n- Name: ${reservation.name}\n- Guests: ${reservation.guests}\n- Date: ${reservation.date}\n- Time: ${reservation.time}\n\nConfirmation sent to ${reservation.email}`
-			);
+			// alert(
+			// 	`Reservation confirmed!\n\nDetails:\n- Name: ${reservation.name}\n- Guests: ${reservation.guests}\n- Date: ${reservation.date}\n- Time: ${reservation.time}\n\nConfirmation sent to ${reservation.email}`
+			// );
 
 			// Redirect to my reservations page after successful submission
-			setTimeout(() => {
-				router.push("/my_reservation");
-			}, 1000);
+			// setTimeout(() => {
+			// 	router.push("/my_reservation");
+			// }, 2000);
 		} catch (err: any) {
 			console.error("Error creating reservation:", err);
 			const errorMessage =
@@ -395,7 +412,7 @@ export default function ReservationsPage() {
 								isLoading={isLoading}
 							/>
 							
-							{/* Availability Summary */}
+							{/* Availability Summary
 							<div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
 								<h3 className="font-semibold text-blue-900 mb-2">
 									Table Availability Info
@@ -414,7 +431,7 @@ export default function ReservationsPage() {
 										• Wrong capacity: {availability.notEnoughSpaceTables.length}
 									</p>
 								</div>
-							</div>
+							</div> */}
 						</>
 					)}
 
@@ -424,6 +441,48 @@ export default function ReservationsPage() {
 							<p className="font-semibold">Error:</p>
 							<p>{error}</p>
 						</div>
+					)}
+
+					{/* Confirmation Banner */}
+					{confirmation && (
+						<motion.div
+							className="mt-10 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-amber-50 px-6 py-5 shadow-md"
+							initial={{ opacity: 0, y: 10 }}
+							animate={{ opacity: 1, y: 0 }}
+						>
+							<p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-700 mb-1">
+								Reservation Confirmed
+							</p>
+							<h3
+								className={`${cinzel.className} text-2xl font-semibold text-gray-900 mb-3`}
+							>
+								Thank you, {confirmation.name}.
+							</h3>
+							<p className="text-sm text-gray-700 mb-1">
+								We&apos;re expecting{" "}
+								<span className="font-semibold">
+									{confirmation.guests}{" "}
+									{confirmation.guests === 1
+										? "guest"
+										: "guests"}
+								</span>{" "}
+								on{" "}
+								<span className="font-semibold">
+									{confirmation.date}
+								</span>{" "}
+								at{" "}
+								<span className="font-semibold">
+									{confirmation.time}
+								</span>
+								.
+							</p>
+							<p className="text-sm text-gray-700">
+								A confirmation has been sent to{" "}
+								<span className="font-mono text-amber-800">
+									{confirmation.email}
+								</span>
+							</p>
+						</motion.div>
 					)}
 
 					{/* Section 4: Final Confirmation Button */}
