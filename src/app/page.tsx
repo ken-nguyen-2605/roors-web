@@ -26,10 +26,10 @@ const colors = [
   "#989793",
 ]
 const dishes : Dish[] = [
-  {id: 1, name: "Korean Bulgogi Plate", image: "/dishes/dish7.jpg", description: "Tender, thinly sliced beef marinated in a savory-sweet Korean bulgogi sauce, grilled to perfection. .", ingredients: "Marinated beef slices, garlic, soy sauce, sesame oil, onions, lettuce wraps, and chili flakes.", price: 59000, rating: 4.5},
-  {id: 2, name: "Crispy Shrimp Tacos", image: "/dishes/dish3.jpg", description: "A vibrant fusion of spice and crunch — crispy shrimp tucked in warm tortillas with creamy chipotle aioli and a zesty slaw. Finished with a squeeze of fresh lime", ingredients: "Golden-fried shrimp, cabbage slaw, chipotle aioli, cilantro, lime wedges, and soft corn tortillas.", price: 79000, rating: 4.7},
-  {id: 3, name: "Pan-Seared Sea Bass", image: "/dishes/dish12.jpg", description: "Delicate and flavorful, our sea bass is pan-seared until golden and paired with a velvety butter-lemon reduction. Complemented by creamy mashed potato and a touch of red pepper coulis ", ingredients: "Fresh sea bass fillet, butter-lemon sauce, baby carrots, mashed potato, and red pepper coulis.", price: 120000, rating: 4.9},
-  {id: 4, name: "Spicy Coconut Curry Noodles", image: "/dishes/dish8.jpg", description: "A warm, aromatic bowl of noodles in a creamy coconut curry base — layered with bold spices, fresh shrimp, and a hint of sweetness. Topped with crispy wonton strips for texture", ingredients: "Egg noodles, coconut milk, chili paste, shrimp, crispy wonton strips, and lime leaves.", price: 68000, rating: 4.6},
+  {id: 1, name: "Garlic Bread", image: "/dishes/dish1.jpg", description: "Toasted bread with garlic butter and herbs.", ingredients: "Bread, garlic, butter, parsley", price: 15000.00, rating: 4.5},
+  {id: 2, name: "Bruschetta", image: "/dishes/dish2.jpg", description: "Grilled bread with tomato and basil.", ingredients: "Bread, tomato, basil, olive oil", price: 18000.00, rating: 4.7},
+  {id: 3, name: "Margherita Pizza", image: "/dishes/dish3.jpg", description: "Classic pizza with tomato, mozzarella, and basil.", ingredients: "Flour, tomato, mozzarella, basil", price: 129000.00, rating: 4.8},
+  {id: 4, name: "Grilled Chicken", image: "/dishes/dish4.jpg", description: "Herb-marinated grilled chicken breast.", ingredients: "Chicken, herbs, olive oil", price: 135000.00, rating: 4.6}
 ]
 
 export default function Home() {
@@ -189,16 +189,16 @@ export default function Home() {
         data-aos="fade-up"
         data-aos-delay="0" 
         data-aos-duration="650">
-          <CrewCard name="crew1" image="/image/crew.jpg" facebook="https://www.facebook.com/hunghao.chau"/>
-          <CrewCard name="crew2" image="/image/crew.jpg" facebook="https://www.facebook.com/hunghao.chau"/>
-          <CrewCard name="crew3" image="/image/crew.jpg"/>
+          <CrewCard name="Exec Chef" image="/image/phucdien.jpg" facebook="https://www.facebook.com/mr.penguin.ssi"/>
+          <CrewCard name="Head Chef" image="/image/datdo.jpg" facebook="https://www.facebook.com/KiemDatLamGi#"/>
+          <CrewCard name="Sous Chef" image="/image/hunghao.jpg" facebook="https://www.facebook.com/hunghao.chau"/>
         </div>
         <div className="flex flex-row gap-[85px] mx-auto"
         data-aos="fade-up"
         data-aos-delay="0" 
         data-aos-duration="650">
-          <CrewCard name="crew4" image="/image/crew.jpg" facebook="https://www.facebook.com/hunghao.chau" tiktok="https://www.facebook.com/hunghao.chau"/>
-          <CrewCard name="crew5" image="/image/crew.jpg"/>
+          <CrewCard name="Pastry Chef" image="/image/datnguyen.jpg" facebook="https://www.facebook.com/sliderboo2005#"/>
+          <CrewCard name="Garde Manger Chef" image="/image/dangbui.jpg" facebook="https://www.facebook.com/profile.php?id=61551922116569#"/>
         </div>
       </section>
       
