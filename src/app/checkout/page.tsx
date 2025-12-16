@@ -357,45 +357,6 @@ export default function Checkout() {
         }
     };
 
-    // ✅ Manual payment confirmation (for user to click "I've paid")
-    const handlePaymentConfirmation = async () => {
-        if (!pendingOrderData?.payment?.paymentId) {
-            setError('Không tìm thấy thông tin thanh toán.');
-            return;
-        }
-
-        try {
-            setPaymentStatus('checking');
-            setError(null);
-
-            // Check current payment status
-            const statusResult = await orderService.checkPaymentStatus(
-                pendingOrderData.payment.paymentId.toString()
-            );
-
-            console.log("Manual payment check result:", statusResult);
-
-            if (statusResult.success && statusResult.data) {
-                const status = statusResult.data.status || statusResult.data.paymentStatus;
-                
-                if (status === 'PAID' || status === 'COMPLETED') {
-                    handlePaymentSuccess();
-                } else {
-                    // Payment not confirmed yet
-                    setPaymentStatus('pending');
-                    setError('Chưa nhận được thanh toán. Vui lòng đợi hoặc thử lại sau ít phút.');
-                }
-            } else {
-                setPaymentStatus('pending');
-                setError(statusResult.message || 'Không thể kiểm tra thanh toán. Vui lòng thử lại.');
-            }
-        } catch (error: any) {
-            console.error('Payment confirmation error:', error);
-            setPaymentStatus('pending');
-            setError(error.message || 'Đã xảy ra lỗi khi kiểm tra thanh toán.');
-        }
-    };
-
     // ✅ Updated cancel function to stop polling
     const handleCancelQRPayment = async () => {
         // Stop polling first
@@ -551,7 +512,7 @@ export default function Checkout() {
                             <div className="mt-4 p-4 bg-white rounded-lg text-sm">
                                 <p className="font-semibold mb-2 text-gray-800">Thông tin chuyển khoản:</p>
                                 <div className="space-y-1 text-gray-700">
-                                    <p><span className="text-gray-500">Ngân hàng:</span> {pendingOrderData.payment.bankCode}</p>
+                                    <p><span className="text-gray-500">Ngân hàng:</span> {pendingOrderData.payment.bankCode == '970422' ? 'MB BANK (Ngân hàng thương mại cổ phần Quân Đội)' : pendingOrderData.payment.bankCode}</p>
                                     <p><span className="text-gray-500">Số TK:</span> {pendingOrderData.payment.accountNumber}</p>
                                     <p><span className="text-gray-500">Chủ TK:</span> {pendingOrderData.payment.accountName}</p>
                                     <p>
@@ -574,7 +535,7 @@ export default function Checkout() {
                             <li>Quét mã QR hoặc nhập thông tin chuyển khoản</li>
                             <li>
                                 <span className="text-red-600 font-medium">
-                                    Quan trọng: Ghi đúng nội dung "Thanh toan don hang {pendingOrderData.orderCode}"
+                                    Quan trọng: Ghi đúng nội dung
                                 </span>
                             </li>
                             <li>Xác nhận thanh toán - hệ thống sẽ tự động kiểm tra</li>
@@ -600,24 +561,6 @@ export default function Checkout() {
                             <p className="text-red-600 text-sm">{error}</p>
                         </div>
                     )}
-
-                    {/* Action Buttons */}
-                    <button
-                        onClick={handlePaymentConfirmation}
-                        disabled={paymentStatus === 'checking' || paymentStatus === 'confirmed'}
-                        className={`w-full py-4 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-all duration-300 font-bold text-lg shadow-lg hover:shadow-xl ${
-                            (paymentStatus === 'checking' || paymentStatus === 'confirmed') 
-                                ? 'opacity-50 cursor-not-allowed' 
-                                : ''
-                        }`}
-                    >
-                        {paymentStatus === 'checking' 
-                            ? 'Đang kiểm tra...' 
-                            : paymentStatus === 'confirmed'
-                                ? 'Đã xác nhận ✓'
-                                : 'Kiểm tra thanh toán'
-                        }
-                    </button>
                     
                     <button
                         onClick={handleCancelQRPayment}
