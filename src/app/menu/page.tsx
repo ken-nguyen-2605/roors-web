@@ -493,7 +493,7 @@ export default function Menu() {
                                 <div className="relative w-fit flex justify-end items-center gap-2.5">
                                     {note.length > 0 &&
                                         <Link
-                                            href="/checkout_page"
+                                            href="/checkout"
                                             className="flex-center w-[150px] h-[35px] p-2 text-xl bg-[#E0E0D9] border-1 rounded-2xl transition duration-150 hover:scale-105"
                                         >
                                             Comfirm

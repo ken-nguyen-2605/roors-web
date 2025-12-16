@@ -383,7 +383,7 @@ export default function OrderHistory() {
       }
 
       // Navigate to checkout page
-      router.push("/checkout_page");
+      router.push("/checkout");
     } catch (error) {
       console.error("Error adding items to cart:", error);
       showNotification("An error occurred while adding items to cart", "error");
