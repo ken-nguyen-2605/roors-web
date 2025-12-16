@@ -65,6 +65,7 @@ export default function AdminHeader() {
     { href: '/admin', label: 'Dashboard', icon: 'mdi:view-dashboard' },
     { href: '/admin/reports', label: 'Reports', icon: 'mdi:chart-bar' },
     { href: '/admin/users', label: 'Users Management', icon: 'mdi:shield-account' },
+    { href: '/admin/customers', label: 'Customers', icon: 'mdi:account-group' },
   ];
 
   const staffLinks = [
