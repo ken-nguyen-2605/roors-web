@@ -1,161 +1,443 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import SlideBackground from "@/utils/SlideBackground";
 import Star from "@/components/decorativeComponents/Star";
 import Line from "@/components/decorativeComponents/Line";
 import Image from "next/image";
 import { Inria_Serif, Italiana } from "next/font/google";
+import { Icon } from "@iconify/react";
+import RatingFeedback from "@/components/order/RatingFeedback";
 
-const inriaSerif = Inria_Serif({
-  weight: ["300"],
-  subsets: ["latin"],
-});
+import orderService from "@/services/orderService";
 
-const italiana = Italiana({
-  weight: ["400"],
-  subsets: ["latin"],
-});
+const inriaSerif = Inria_Serif({ weight: ["300"], subsets: ["latin"] });
+const italiana = Italiana({ weight: ["400"], subsets: ["latin"] });
 
 interface OrderItem {
-  id: number;
+  id: number | string;
   name: string;
   quantity: number;
   price: number;
+  dishRating?: number;
+  dishFeedback?: string;
+  dishRatedAt?: string;
 }
 
 interface Order {
-  id: number;
+  id: number | string;
   orderNumber: string;
   date: string;
   time: string;
-  status: "preparing" | "completed" | "cancelled" | "delivered";
+  status: "pending" | "confirmed" | "preparing" | "ready" | "delivering" | "completed" | "cancelled";
   items: OrderItem[];
+  subtotal: number;
   total: number;
   paymentMethod: string;
   deliveryType: "dine-in" | "takeaway" | "delivery";
   address?: string;
+  rating?: number;
+  feedback?: string;
+  ratedAt?: string;
 }
 
-const orders: Order[] = [
-  {
-    id: 1,
-    orderNumber: "ORD-2025-001",
-    date: "2025-02-10",
-    time: "19:30",
-    status: "preparing",
-    items: [
-      { id: 1, name: "Grilled Salmon", quantity: 2, price: 28.99 },
-      { id: 2, name: "Caesar Salad", quantity: 1, price: 12.99 },
-      { id: 3, name: "Red Wine", quantity: 1, price: 45.00 },
-    ],
-    total: 115.97,
-    paymentMethod: "Credit Card",
-    deliveryType: "dine-in",
-  },
-  {
-    id: 2,
-    orderNumber: "ORD-2025-002",
-    date: "2025-02-05",
-    time: "18:15",
-    status: "completed",
-    items: [
-      { id: 4, name: "Ribeye Steak", quantity: 1, price: 42.99 },
-      { id: 5, name: "Mashed Potatoes", quantity: 1, price: 8.99 },
-      { id: 6, name: "Tiramisu", quantity: 2, price: 9.99 },
-    ],
-    total: 71.96,
-    paymentMethod: "Cash",
-    deliveryType: "dine-in",
-  },
-  {
-    id: 3,
-    orderNumber: "ORD-2025-003",
-    date: "2025-01-28",
-    time: "20:00",
-    status: "delivered",
-    items: [
-      { id: 7, name: "Margherita Pizza", quantity: 2, price: 16.99 },
-      { id: 8, name: "Garlic Bread", quantity: 1, price: 6.99 },
-      { id: 9, name: "Coca Cola", quantity: 2, price: 3.99 },
-    ],
-    total: 48.95,
-    paymentMethod: "Debit Card",
-    deliveryType: "delivery",
-    address: "123 Main Street, Apt 4B, New York, NY 10001",
-  },
-  {
-    id: 4,
-    orderNumber: "ORD-2025-004",
-    date: "2025-01-20",
-    time: "12:30",
-    status: "completed",
-    items: [
-      { id: 10, name: "Chicken Pasta", quantity: 1, price: 18.99 },
-      { id: 11, name: "Garden Salad", quantity: 1, price: 10.99 },
-    ],
-    total: 29.98,
-    paymentMethod: "Credit Card",
-    deliveryType: "takeaway",
-  },
-  {
-    id: 5,
-    orderNumber: "ORD-2025-005",
-    date: "2025-01-15",
-    time: "19:45",
-    status: "cancelled",
-    items: [
-      { id: 12, name: "Lobster Thermidor", quantity: 2, price: 65.99 },
-      { id: 13, name: "Champagne", quantity: 1, price: 89.99 },
-    ],
-    total: 221.97,
-    paymentMethod: "Credit Card",
-    deliveryType: "dine-in",
-  },
-  {
-    id: 6,
-    orderNumber: "ORD-2025-006",
-    date: "2025-01-10",
-    time: "13:00",
-    status: "completed",
-    items: [
-      { id: 14, name: "Club Sandwich", quantity: 1, price: 14.99 },
-      { id: 15, name: "French Fries", quantity: 1, price: 5.99 },
-      { id: 16, name: "Lemonade", quantity: 1, price: 4.99 },
-    ],
-    total: 25.97,
-    paymentMethod: "Cash",
-    deliveryType: "takeaway",
-  },
-];
-
 const statusColors = {
+  pending: "#FFC107",
+  confirmed: "#2196F3",
   preparing: "#FF9800",
+  ready: "#4CAF50",
+  delivering: "#9C27B0",
   completed: "#4CAF50",
   cancelled: "#D32F2F",
-  delivered: "#2196F3",
 };
 
-const cardColors = ["#F5F4ED", "#FFFFFF", "#7A7A76", "#989793"];
+const cardColors = ["#F5F4ED", "#FFFFFF", "#7A7A76", "#989793"] as const;
+type FilterType = "all" | "pending" | "preparing" | "ready" | "delivering" | "completed" | "cancelled";
 
-type FilterType = "all" | "preparing" | "completed" | "cancelled" | "delivered";
+// Rating Component for Overall Order
+interface RatingComponentProps {
+  orderId: number | string;
+  initialRating: number;
+  initialFeedback?: string;
+  onRate: (orderId: number | string, rating: number, feedback: string) => void;
+  isLightBackground: boolean;
+}
 
-export default function OrderHistory() {
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
-  const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
+const RatingComponent = ({
+  orderId,
+  initialRating,
+  initialFeedback,
+  onRate,
+  isLightBackground,
+}: RatingComponentProps) => {
+  const [rating, setRating] = useState(initialRating);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [feedback, setFeedback] = useState(initialFeedback || "");
+  const [showFeedback, setShowFeedback] = useState(!!initialRating);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Filter orders based on active filter
-  const filteredOrders =
-    activeFilter === "all"
-      ? orders
-      : orders.filter((order) => order.status === activeFilter);
+  const handleStarClick = (starValue: number) => {
+    setRating(starValue);
+    setShowFeedback(true);
+  };
 
-  const toggleOrderDetails = (orderId: number) => {
-    setExpandedOrder(expandedOrder === orderId ? null : orderId);
+  const handleSubmit = async () => {
+    if (rating === 0) return;
+    setIsSubmitting(true);
+    await onRate(orderId, rating, feedback);
+    setIsSubmitting(false);
   };
 
   return (
+    <div className="flex flex-col gap-3">
+      <p className={`text-sm font-semibold ${isLightBackground ? "text-black/70" : "text-white/70"}`}>
+        {rating > 0 ? "Your Overall Rating:" : "Rate this order:"}
+      </p>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((starValue) => (
+          <Icon
+            key={starValue}
+            className="text-[#FBBF24] text-3xl cursor-pointer transition-transform hover:scale-110"
+            onClick={() => handleStarClick(starValue)}
+            onMouseEnter={() => setHoveredRating(starValue)}
+            onMouseLeave={() => setHoveredRating(0)}
+            icon={(hoveredRating || rating) >= starValue ? "tabler:star-filled" : "lucide:star"}
+          />
+        ))}
+      </div>
+
+      {showFeedback && (
+        <div className="flex flex-col gap-3 mt-2">
+          <textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="Share your experience with this order..."
+            className={`w-full px-4 py-3 rounded-lg border-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none ${
+              isLightBackground
+                ? "bg-white border-gray-300 text-black"
+                : "bg-white/10 border-white/30 text-white placeholder-white/50"
+            }`}
+            rows={3}
+            disabled={isSubmitting}
+          />
+          {!initialRating && (
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || rating === 0}
+              className={`px-6 py-2 rounded-lg font-medium transition duration-300 ${
+                isLightBackground
+                  ? "bg-black text-white hover:bg-gray-800"
+                  : "bg-white text-black hover:bg-gray-200"
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Rating"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {initialRating && initialFeedback && (
+        <div className={`mt-2 text-sm ${isLightBackground ? "text-black/60" : "text-white/60"}`}>
+          <p className="italic">"{initialFeedback}"</p>
+          <p className="mt-1 text-xs">
+            Rated on {new Date(initialFeedback).toLocaleDateString()}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Cancel Confirmation Modal
+interface CancelModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  orderNumber: string;
+}
+
+const CancelModal = ({ isOpen, onClose, onConfirm, orderNumber }: CancelModalProps) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
+        <div className="flex items-center gap-3 mb-4">
+          <Icon icon="material-symbols:warning" className="text-red-600 text-4xl" />
+          <h3 className="text-2xl font-bold">Cancel Order</h3>
+        </div>
+        <p className="text-gray-700 mb-2">
+          Are you sure you want to cancel order <span className="font-bold">{orderNumber}</span>?
+        </p>
+        <p className="text-gray-600 text-sm mb-6">
+          This action cannot be undone. Your order will be cancelled immediately.
+        </p>
+        <div className="flex gap-4">
+          <button
+            onClick={onClose}
+            className="flex-1 px-6 py-3 border-2 border-gray-300 hover:bg-gray-100 transition duration-300 rounded"
+          >
+            Keep Order
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 px-6 py-3 bg-red-600 text-white hover:bg-red-700 transition duration-300 rounded"
+          >
+            Yes, Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function OrderHistory() {
+  const router = useRouter();
+
+  // API integration state
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // UI state
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [expandedOrder, setExpandedOrder] = useState<number | string | null>(null);
+  const [ordersList, setOrdersList] = useState<Order[]>([]);
+
+  const [cancelModal, setCancelModal] = useState<{
+    isOpen: boolean;
+    orderId: number | string | null;
+    orderNumber: string;
+  }>({ isOpen: false, orderId: null, orderNumber: "" });
+
+  // Rating modal for detailed per-dish reviews
+  const [reviewModal, setReviewModal] = useState<{ isOpen: boolean; order: Order | null }>({
+    isOpen: false,
+    order: null,
+  });
+
+  // Map API order to UI Order shape
+  const mapApiOrderToOrder = (o: any): Order => {
+    const dateObj = new Date(o.createdAt);
+    const time = `${String(dateObj.getHours()).padStart(2, "0")}:${String(
+      dateObj.getMinutes()
+    ).padStart(2, "0")}`;
+
+    const status = o.status.toLowerCase() as Order["status"];
+
+    const items = o.items.map((it: any) => ({
+      id: it.id,
+      name: it.menuItemName,
+      quantity: it.quantity,
+      price: it.unitPrice,
+      dishRating: it.dishRating,
+      dishFeedback: it.dishFeedback,
+      dishRatedAt: it.dishRatedAt,
+    }));
+
+    const orderTypeMap: Record<string, Order["deliveryType"]> = {
+      DELIVERY: "delivery",
+      DINE_IN: "dine-in",
+      TAKEAWAY: "takeaway",
+    };
+    const deliveryType = orderTypeMap[o.orderType] || "delivery";
+
+    return {
+      id: o.id,
+      orderNumber: o.orderNumber,
+      date: dateObj.toISOString(),
+      time,
+      status,
+      items,
+      subtotal: o.subtotal,
+      total: o.totalAmount,
+      paymentMethod: o.payment?.paymentMethod || "Cash",
+      deliveryType,
+      address: o.deliveryAddress || undefined,
+      rating: o.rating || 0,
+      feedback: o.feedback,
+      ratedAt: o.ratedAt,
+    };
+  };
+
+  // Load orders on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      const res = await orderService.getMyOrders({ page: 0, size: 50 });
+      if (!mounted) return;
+
+      if (!res?.success) {
+        setError(res?.message || "Failed to load orders");
+        setOrdersList([]);
+      } else if (!res.data || res.data.length === 0) {
+        setOrdersList([]);
+      } else {
+        setOrdersList(res.data.map(mapApiOrderToOrder));
+      }
+      setLoading(false);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Filter orders based on active filter
+  const filteredOrders = useMemo(() => {
+    if (activeFilter === "all") return ordersList;
+    return ordersList.filter((order) => order.status === activeFilter);
+  }, [ordersList, activeFilter]);
+
+  const toggleOrderDetails = (orderId: number | string) => {
+    setExpandedOrder(expandedOrder === orderId ? null : orderId);
+  };
+
+  const handleTrackOrder = (orderId: number | string) => {
+    router.push(`/my_order/${orderId}`);
+  };
+
+  const handleCancelOrder = (orderId: number | string, orderNumber: string) => {
+    setCancelModal({ isOpen: true, orderId, orderNumber });
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!cancelModal.orderId) return;
+    const res = await orderService.cancelOrder(String(cancelModal.orderId), {
+      reason: "Customer requested cancellation",
+    });
+    if (!res?.success) {
+      alert(res?.message || "Failed to cancel order");
+    } else {
+      setOrdersList((prev) =>
+        prev.map((o) =>
+          String(o.id) === String(cancelModal.orderId) ? { ...o, status: "cancelled" } : o
+        )
+      );
+    }
+    setCancelModal({ isOpen: false, orderId: null, orderNumber: "" });
+  };
+
+  const handleReorder = async (order: Order) => {
+    try {
+      const res = await orderService.reorder(String(order.id));
+      if (res?.success) {
+        alert("Order placed successfully!");
+        router.push("/my_order");
+      } else {
+        alert(res?.message || "Failed to reorder");
+      }
+    } catch (error) {
+      alert("An error occurred while reordering");
+    }
+  };
+
+  // Handle overall order rating submission
+  const handleRating = async (orderId: number | string, rating: number, feedback: string) => {
+    const res = await orderService.submitOrderRating(String(orderId), rating, feedback);
+    if (!res?.success) {
+      alert(res?.message || "Failed to save rating");
+      return;
+    }
+    
+    // Update local state
+    setOrdersList((prev) =>
+      prev.map((o) =>
+        String(o.id) === String(orderId)
+          ? { ...o, rating, feedback, ratedAt: new Date().toISOString() }
+          : o
+      )
+    );
+    
+    alert("Thank you for your rating!");
+  };
+
+  // Open detailed review modal for per-dish ratings
+  const handleLeaveReview = (order: Order) => {
+    setReviewModal({ isOpen: true, order });
+  };
+
+  // Submit per-dish ratings from RatingFeedback component
+  const handleRatingSubmit = async (finalList: any[]) => {
+    if (!reviewModal.order) {
+      setReviewModal({ isOpen: false, order: null });
+      return;
+    }
+
+    try {
+      // Submit each dish rating
+      const promises = finalList.map((item, index) => {
+        const orderItem = reviewModal.order!.items[index];
+        if (item.stars > 0) {
+          return orderService.submitDishRating(
+            String(reviewModal.order!.id),
+            String(orderItem.id),
+            item.stars,
+            item.review || ""
+          );
+        }
+        return Promise.resolve({ success: true });
+      });
+
+      const results = await Promise.all(promises);
+      const failed = results.filter((r) => !r.success);
+
+      if (failed.length > 0) {
+        alert("Some ratings failed to submit. Please try again.");
+      } else {
+        alert("Thank you for your detailed feedback!");
+        
+        // Reload orders to get updated ratings
+        const res = await orderService.getMyOrders({ page: 0, size: 50 });
+        if (res?.success && res.data) {
+          setOrdersList(res.data.map(mapApiOrderToOrder));
+        }
+      }
+    } catch (error) {
+      alert("An error occurred while submitting ratings");
+    }
+
+    setReviewModal({ isOpen: false, order: null });
+  };
+
+  // Prepare infolist for RatingFeedback component
+  const getInfoListForReview = (order: Order | null) => {
+    if (!order) return [];
+    return order.items.map((item) => ({
+      name: item.name,
+      src: `/food-img/${item.name.toLowerCase().replace(/\s+/g, "-")}.jpg`,
+      rating: item.dishRating || 0,
+      feedback: item.dishFeedback || "",
+    }));
+  };
+
+  // UI Rendering
+  return (
     <section className="relative">
+      {/* Cancel Confirmation Modal */}
+      <CancelModal
+        isOpen={cancelModal.isOpen}
+        onClose={() => setCancelModal({ isOpen: false, orderId: null, orderNumber: "" })}
+        onConfirm={confirmCancelOrder}
+        orderNumber={cancelModal.orderNumber}
+      />
+
+      {/* Rating modal for detailed per-dish reviews */}
+      {reviewModal.isOpen && reviewModal.order && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 z-30"
+            onClick={() => setReviewModal({ isOpen: false, order: null })}
+          />
+          <RatingFeedback
+            infolist={getInfoListForReview(reviewModal.order)}
+            onSendRating={handleRatingSubmit}
+          />
+        </>
+      )}
+
       {/* Background decorations */}
       <div className="absolute top-[800px] w-full flex justify-center">
         <Image
@@ -169,11 +451,7 @@ export default function OrderHistory() {
 
       {/* Hero Section */}
       <SlideBackground
-        images={[
-          "/background/bg1.jpg",
-          "/background/bg3.jpg",
-          "/background/bg2.jpg",
-        ]}
+        images={["/background/bg1.jpg", "/background/bg3.jpg", "/background/bg2.jpg"]}
         interval={8000}
         transitionDuration={1500}
         className="flex-center h-[60vh] w-full"
@@ -183,10 +461,7 @@ export default function OrderHistory() {
           <span className="absolute top-0 left-0 w-[230px] h-[103px] border-white border-t-8 border-l-8" />
           <span className="absolute bottom-0 right-0 w-[230px] h-[103px] border-white border-b-8 border-r-8" />
           <div className="text-center text-white">
-            <span
-              className={`${inriaSerif.className} text-7xl`}
-              style={{ fontStyle: "italic" }}
-            >
+            <span className={`${inriaSerif.className} text-7xl`} style={{ fontStyle: "italic" }}>
               <p>Order</p>
               <p>History</p>
             </span>
@@ -202,468 +477,337 @@ export default function OrderHistory() {
         <Line color="black" size={514} direction="horizontal" thinkness={3} />
       </div>
 
-      {/* Orders Section */}
-      <section className="relative text-center flex flex-col gap-11 w-[1280px] h-auto mt-[75px] mb-[100px] mx-auto">
-        <span
-          className={`${italiana.className} text-5xl`}
-          data-aos="fade-up"
-          data-aos-delay="0"
-          data-aos-duration="650"
-        >
-          Your Orders
-        </span>
-
-        {/* Filter Tabs */}
-        <div
-          className="flex flex-row gap-5 mx-auto flex-wrap justify-center"
-          data-aos="fade-up"
-          data-aos-delay="100"
-          data-aos-duration="650"
-        >
+      {/* Loading & Error States */}
+      {loading && (
+        <div className="py-20 text-center">
+          <div className="flex items-center justify-center gap-3">
+            <Icon icon="eos-icons:loading" className="text-5xl text-orange-500" />
+            <h4 className="text-2xl opacity-60">Loading your orders…</h4>
+          </div>
+        </div>
+      )}
+      {!loading && error && (
+        <div className="py-20 text-center">
+          <h4 className="text-2xl text-red-600">{error}</h4>
           <button
-            onClick={() => setActiveFilter("all")}
-            className={`px-8 py-2 border-2 border-black transition duration-300 ${
-              activeFilter === "all"
-                ? "bg-black text-white"
-                : "hover:bg-black hover:text-white"
-            }`}
+            onClick={() => window.location.reload()}
+            className="mt-4 px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300"
           >
-            All
-          </button>
-          <button
-            onClick={() => setActiveFilter("preparing")}
-            className={`px-8 py-2 border-2 border-black transition duration-300 ${
-              activeFilter === "preparing"
-                ? "bg-black text-white"
-                : "hover:bg-black hover:text-white"
-            }`}
-          >
-            Preparing
-          </button>
-          <button
-            onClick={() => setActiveFilter("delivered")}
-            className={`px-8 py-2 border-2 border-black transition duration-300 ${
-              activeFilter === "delivered"
-                ? "bg-black text-white"
-                : "hover:bg-black hover:text-white"
-            }`}
-          >
-            Delivered
-          </button>
-          <button
-            onClick={() => setActiveFilter("completed")}
-            className={`px-8 py-2 border-2 border-black transition duration-300 ${
-              activeFilter === "completed"
-                ? "bg-black text-white"
-                : "hover:bg-black hover:text-white"
-            }`}
-          >
-            Completed
-          </button>
-          <button
-            onClick={() => setActiveFilter("cancelled")}
-            className={`px-8 py-2 border-2 border-black transition duration-300 ${
-              activeFilter === "cancelled"
-                ? "bg-black text-white"
-                : "hover:bg-black hover:text-white"
-            }`}
-          >
-            Cancelled
+            Retry
           </button>
         </div>
+      )}
 
-        {/* Orders List */}
-        {filteredOrders.length > 0 ? (
-          <div className="flex flex-col gap-6 mx-auto">
-            {filteredOrders.map((order, i) => (
-              <div
-                key={order.id}
-                className="relative flex flex-col w-[1100px] shadow-xl px-8 py-6 rounded-lg"
-                style={{
-                  backgroundColor: cardColors[i % cardColors.length],
-                }}
-                data-aos="fade-up"
-                data-aos-delay={i * 100}
-                data-aos-duration="650"
+      {/* Orders Section */}
+      {!loading && !error && (
+        <section className="relative text-center flex flex-col gap-11 w-[1280px] h-auto mt-[30px] mb-[100px] mx-auto">
+          <span className={`${italiana.className} text-5xl`} data-aos="fade-up" data-aos-delay="0" data-aos-duration="650">
+            Your Orders
+          </span>
+
+          {/* Filter Tabs */}
+          <div className="flex flex-row gap-5 mx-auto flex-wrap justify-center" data-aos="fade-up" data-aos-delay="100" data-aos-duration="650">
+            {(["all", "pending", "preparing", "ready", "delivering", "completed", "cancelled"] as FilterType[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setActiveFilter(f)}
+                className={`px-8 py-2 border-2 border-black transition duration-300 ${
+                  activeFilter === f ? "bg-black text-white" : "hover:bg-black hover:text-white"
+                }`}
               >
-                {/* Order Header */}
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-4">
-                      <span
-                        className={`text-xl font-bold ${
-                          i % cardColors.length === 2
-                            ? "text-white"
-                            : "text-black"
-                        }`}
-                      >
-                        {order.orderNumber}
-                      </span>
-                      <span
-                        className="px-4 py-1.5 rounded-full text-white text-sm font-medium uppercase"
-                        style={{
-                          backgroundColor: statusColors[order.status],
-                        }}
-                      >
-                        {order.status}
-                      </span>
-                    </div>
-                    <div
-                      className={`flex items-center gap-6 text-base ${
-                        i % cardColors.length === 2 ? "text-white" : "text-black"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                        <span>
-                          {new Date(order.date).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        <span>{order.time}</span>
-                      </div>
-                      <div className="flex items-center gap-2 capitalize">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-                          />
-                        </svg>
-                        <span>{order.deliveryType}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div
-                    className={`text-right ${
-                      i % cardColors.length === 2 ? "text-white" : "text-black"
-                    }`}
-                  >
-                    <p className="text-sm opacity-75">Total Amount</p>
-                    <p className="text-3xl font-bold">${order.total.toFixed(2)}</p>
-                  </div>
-                </div>
-
-                {/* Order Summary */}
-                <div
-                  className={`flex justify-between items-center py-4 border-t ${
-                                        i % cardColors.length === 2
-                      ? "border-white/30 text-white"
-                      : "border-black/20 text-black"
-                  }`}
-                >
-                  <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                        />
-                      </svg>
-                      <span>
-                        {order.items.length}{" "}
-                        {order.items.length === 1 ? "Item" : "Items"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                        />
-                      </svg>
-                      <span>{order.paymentMethod}</span>
-                    </div>
-                    {order.deliveryType === "delivery" && order.address && (
-                      <div className="flex items-center gap-2">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-                        <span className="max-w-[300px] truncate">
-                          {order.address}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => toggleOrderDetails(order.id)}
-                    className={`flex items-center gap-2 px-4 py-2 border-2 transition duration-300 ${
-                      i % cardColors.length === 2
-                        ? "border-white hover:bg-white hover:text-black"
-                        : "border-black hover:bg-black hover:text-white"
-                    }`}
-                  >
-                    <span>
-                      {expandedOrder === order.id
-                        ? "Hide Details"
-                        : "View Details"}
-                    </span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className={`h-5 w-5 transition-transform duration-300 ${
-                        expandedOrder === order.id ? "rotate-180" : ""
-                      }`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Expanded Order Details */}
-                {expandedOrder === order.id && (
-                  <div
-                    className={`mt-4 pt-4 border-t ${
-                      i % cardColors.length === 2
-                        ? "border-white/30 text-white"
-                        : "border-black/20 text-black"
-                    }`}
-                  >
-                    <h3 className="text-lg font-semibold mb-3">Order Items</h3>
-                    <div className="flex flex-col gap-3">
-                      {order.items.map((item) => (
-                        <div
-                          key={item.id}
-                          className={`flex justify-between items-center py-3 px-4 rounded ${
-                            i % cardColors.length === 2
-                              ? "bg-white/10"
-                              : "bg-black/5"
-                          }`}
-                        >
-                          <div className="flex items-center gap-4">
-                            <span className="font-medium text-lg">
-                              {item.name}
-                            </span>
-                            <span
-                              className={`text-sm ${
-                                i % cardColors.length === 2
-                                  ? "text-white/70"
-                                  : "text-black/60"
-                              }`}
-                            >
-                              x{item.quantity}
-                            </span>
-                          </div>
-                          <span className="font-semibold text-lg">
-                            ${(item.price * item.quantity).toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Order Total Breakdown */}
-                    <div
-                      className={`mt-4 pt-4 border-t ${
-                        i % cardColors.length === 2
-                          ? "border-white/30"
-                          : "border-black/20"
-                      }`}
-                    >
-                      <div className="flex justify-between items-center mb-2">
-                        <span>Subtotal</span>
-                        <span>${order.total.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span>Tax (10%)</span>
-                        <span>${(order.total * 0.1).toFixed(2)}</span>
-                      </div>
-                      {order.deliveryType === "delivery" && (
-                        <div className="flex justify-between items-center mb-2">
-                          <span>Delivery Fee</span>
-                          <span>$5.00</span>
-                        </div>
-                      )}
-                      <div
-                        className={`flex justify-between items-center pt-3 mt-3 border-t text-xl font-bold ${
-                          i % cardColors.length === 2
-                            ? "border-white/30"
-                            : "border-black/20"
-                        }`}
-                      >
-                        <span>Total</span>
-                        <span>
-                          $
-                          {(
-                            order.total * 1.1 +
-                            (order.deliveryType === "delivery" ? 5 : 0)
-                          ).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-3 mt-4">
-                  {order.status === "preparing" && (
-                    <>
-                      <button
-                        className={`px-6 py-2 border-2 transition duration-300 ${
-                          i % cardColors.length === 2
-                            ? "border-white hover:bg-white hover:text-black"
-                            : "border-black hover:bg-black hover:text-white"
-                        }`}
-                      >
-                        Track Order
-                      </button>
-                      <button
-                        className={`px-6 py-2 border-2 transition duration-300 ${
-                          i % cardColors.length === 2
-                            ? "border-red-400 text-red-400 hover:bg-red-400 hover:text-white"
-                            : "border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
-                        }`}
-                      >
-                        Cancel Order
-                      </button>
-                    </>
-                  )}
-
-                  {(order.status === "completed" ||
-                    order.status === "delivered") && (
-                    <>
-                      <button className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300">
-                        Reorder
-                      </button>
-                      <button
-                        className={`px-6 py-2 border-2 transition duration-300 ${
-                          i % cardColors.length === 2
-                            ? "border-white hover:bg-white hover:text-black"
-                            : "border-black hover:bg-black hover:text-white"
-                        }`}
-                      >
-                        Leave Review
-                      </button>
-                      <button
-                        className={`px-6 py-2 border-2 transition duration-300 ${
-                          i % cardColors.length === 2
-                            ? "border-white hover:bg-white hover:text-black"
-                            : "border-black hover:bg-black hover:text-white"
-                        }`}
-                      >
-                        Download Receipt
-                      </button>
-                    </>
-                  )}
-
-                  {order.status === "cancelled" && (
-                    <button className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300">
-                      Reorder
-                    </button>
-                  )}
-                </div>
-              </div>
+                {f[0].toUpperCase() + f.slice(1)}
+              </button>
             ))}
           </div>
-        ) : (
-          // Empty State
-          <div
-            className="flex flex-col items-center gap-6 py-20"
-            data-aos="fade-up"
-            data-aos-delay="0"
-            data-aos-duration="650"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-24 w-24 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-              />
-            </svg>
-            <p className="text-2xl text-gray-500">
-              No {activeFilter !== "all" ? activeFilter : ""} orders found
-            </p>
-            <button className="px-8 py-3 bg-black text-white hover:bg-gray-800 transition duration-300 mt-4">
-              Start Ordering
-            </button>
-          </div>
-        )}
-      </section>
+
+          {/* Orders List */}
+          {filteredOrders.length > 0 ? (
+            <div className="flex flex-col gap-6 mx-auto">
+              {filteredOrders.map((order, i) => {
+                const isLightBackground = i % cardColors.length !== 2;
+                return (
+                  <div
+                    key={order.id}
+                    className="relative flex flex-col w-[1100px] shadow-xl px-8 py-6 rounded-lg"
+                    style={{ backgroundColor: cardColors[i % cardColors.length] }}
+                    data-aos="fade-up"
+                    data-aos-delay={i * 100}
+                    data-aos-duration="650"
+                  >
+                    {/* Order Header */}
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-4">
+                          <span className={`text-xl font-bold ${isLightBackground ? "text-black" : "text-white"}`}>
+                            {order.orderNumber}
+                          </span>
+                          <span
+                            className="px-4 py-1.5 rounded-full text-white text-sm font-medium uppercase"
+                            style={{ backgroundColor: statusColors[order.status] }}
+                          >
+                            {order.status}
+                          </span>
+                        </div>
+                        <div className={`flex items-center gap-6 text-base ${isLightBackground ? "text-black" : "text-white"}`}>
+                          <div className="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>
+                              {new Date(order.date).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>{order.time}</span>
+                          </div>
+                          <div className="flex items-center gap-2 capitalize">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span>{order.deliveryType}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`text-right ${isLightBackground ? "text-black" : "text-white"}`}>
+                        <p className="text-sm opacity-75">Total Amount</p>
+                        <p className="text-3xl font-bold">${order.total.toFixed(2)}</p>
+                      </div>
+                    </div>
+
+                    {/* Order Summary */}
+                    <div
+                      className={`flex justify-between items-center py-4 border-t ${
+                        isLightBackground ? "border-black/20 text-black" : "border-white/30 text-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                          </svg>
+                          <span>
+                            {order.items.length} {order.items.length === 1 ? "Item" : "Items"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          </svg>
+                          <span>{order.paymentMethod}</span>
+                        </div>
+                        {order.deliveryType === "delivery" && order.address && (
+                          <div className="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="max-w-[300px] truncate">{order.address}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => toggleOrderDetails(order.id)}
+                        className={`flex items-center gap-2 px-4 py-2 border-2 transition duration-300 ${
+                          isLightBackground ? "border-black hover:bg-black hover:text-white" : "border-white hover:bg-white hover:text-black"
+                        }`}
+                      >
+                        <span>{expandedOrder === order.id ? "Hide Details" : "View Details"}</span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className={`h-5 w-5 transition-transform duration-300 ${
+                            expandedOrder === order.id ? "rotate-180" : ""
+                          }`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Expanded Order Details */}
+                    {expandedOrder === order.id && (
+                      <div
+                        className={`mt-4 pt-4 border-t ${
+                          isLightBackground ? "border-black/20 text-black" : "border-white/30 text-white"
+                        }`}
+                      >
+                        <h3 className="text-lg font-semibold mb-3">Order Items</h3>
+                        <div className="flex flex-col gap-3">
+                          {order.items.map((item) => (
+                            <div
+                              key={item.id}
+                              className={`flex justify-between items-center py-3 px-4 rounded ${
+                                isLightBackground ? "bg-black/5" : "bg-white/10"
+                              }`}
+                            >
+                              <div className="flex items-center gap-4 flex-1">
+                                <span className="font-medium text-lg">{item.name}</span>
+                                <span className={`text-sm ${isLightBackground ? "text-black/60" : "text-white/70"}`}>
+                                  x{item.quantity}
+                                </span>
+                                {item.dishRating && (
+                                  <div className="flex items-center gap-1 ml-4">
+                                    {Array.from({ length: 5 }, (_, i) => (
+                                      <Icon
+                                        key={i}
+                                        icon={i < item.dishRating! ? "tabler:star-filled" : "lucide:star"}
+                                        className="text-yellow-400 text-sm"
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <span className="font-semibold text-lg">${(item.price * item.quantity).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Order Total Breakdown */}
+                        <div className={`mt-4 pt-4 border-t ${isLightBackground ? "border-black/20" : "border-white/30"}`}>
+                          <div className="flex justify-between items-center mb-2">
+                            <span>Subtotal</span>
+                            <span>${order.subtotal.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span>Tax (10%)</span>
+                            <span>${(order.total * 0.1).toFixed(2)}</span>
+                          </div>
+                          {order.deliveryType === "delivery" && (
+                            <div className="flex justify-between items-center mb-2">
+                              <span>Delivery Fee</span>
+                              <span>$5.00</span>
+                            </div>
+                          )}
+                          <div
+                            className={`flex justify-between items-center pt-3 mt-3 border-t text-xl font-bold ${
+                              isLightBackground ? "border-black/20" : "border-white/30"
+                            }`}
+                          >
+                            <span>Total</span>
+                            <span>
+                              ${(order.subtotal * 1.1 + (order.deliveryType === "delivery" ? 5 : 0)).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Rating Section for Completed Orders */}
+                        {order.status === "completed" && (
+                          <div className={`mt-6 pt-6 border-t ${isLightBackground ? "border-black/20" : "border-white/30"}`}>
+                            <RatingComponent
+                              orderId={order.id}
+                              initialRating={order.rating || 0}
+                              initialFeedback={order.feedback}
+                              onRate={handleRating}
+                              isLightBackground={isLightBackground}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-end gap-3 mt-4">
+                      {/* Show track/cancel for pending, confirmed, preparing, ready statuses */}
+                      {(order.status === "pending" || order.status === "confirmed" || 
+                        order.status === "preparing" || order.status === "ready") && (
+                        <>
+                          <button
+                            onClick={() => handleTrackOrder(order.id)}
+                            className={`px-6 py-2 border-2 transition duration-300 ${
+                              isLightBackground ? "border-black hover:bg-black hover:text-white" : "border-white hover:bg-white hover:text-black"
+                            }`}
+                          >
+                            Track Order
+                          </button>
+                          <button
+                            onClick={() => handleCancelOrder(order.id, order.orderNumber)}
+                            className={`px-6 py-2 border-2 transition duration-300 ${
+                              isLightBackground
+                                ? "border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                                : "border-red-400 text-red-400 hover:bg-red-400 hover:text-white"
+                            }`}
+                          >
+                            Cancel Order
+                          </button>
+                        </>
+                      )}
+
+                      {/* Show track for delivering status */}
+                      {order.status === "delivering" && (
+                        <button
+                          onClick={() => handleTrackOrder(order.id)}
+                          className={`px-6 py-2 border-2 transition duration-300 ${
+                            isLightBackground ? "border-black hover:bg-black hover:text-white" : "border-white hover:bg-white hover:text-black"
+                          }`}
+                        >
+                          Track Delivery
+                        </button>
+                      )}
+
+                      {/* Show review/reorder for completed status */}
+                      {order.status === "completed" && (
+                        <>
+                          <button
+                            onClick={() => handleLeaveReview(order)}
+                            className={`px-6 py-2 border-2 transition duration-300 ${
+                              i % cardColors.length === 2
+                                ? "border-white hover:bg-white hover:text-black"
+                                : "border-black hover:bg-black hover:text-white"
+                            }`}
+                          >
+                            {order.items.some(item => item.dishRating) ? "Update Review" : "Leave Detailed Review"}
+                          </button>
+
+                          <button
+                            onClick={() => handleReorder(order)}
+                            className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300"
+                          >
+                            Reorder
+                          </button>
+                        </>
+                      )}
+
+                      {/* Show reorder for cancelled status */}
+                      {order.status === "cancelled" && (
+                        <button
+                          onClick={() => handleReorder(order)}
+                          className="px-6 py-2 bg-black text-white hover:bg-gray-800 transition duration-300"
+                        >
+                          Reorder
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            // Empty State
+            <div className="flex flex-col items-center gap-6 py-20" data-aos="fade-up" data-aos-delay="0" data-aos-duration="650">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              <p className="text-2xl text-gray-500">No {activeFilter !== "all" ? activeFilter : ""} orders found</p>
+              <button 
+                onClick={() => router.push("/menu")}
+                className="px-8 py-3 bg-black text-white hover:bg-gray-800 transition duration-300 mt-4"
+              >
+                Start Ordering
+              </button>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Bottom Divider */}
       <div className="relative flex items-center justify-between w-[1134px] h-[64px] mb-[100px] mx-auto">

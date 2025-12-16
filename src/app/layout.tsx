@@ -3,7 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/header/Header";
 import Footer from "@/components/Footer";
-import Aos from "@/utils/Aos"
+import Aos from "@/utils/Aos";
+import Providers from "@/components/Providers"; // ✅ Import the wrapper
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,12 +31,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Aos/>
-        <Header tranYdistance={620}/>
-        <main className="">
-          {children}
-        </main>
-        <Footer/>
+        <Providers>
+          <Aos />
+          <Header tranYdistance={620} />
+          <main className="">
+            {children}
+          </main>
+          <Footer />
+        </Providers>
       </body>
     </html>
   );

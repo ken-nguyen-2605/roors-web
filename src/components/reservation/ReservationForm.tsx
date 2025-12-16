@@ -109,7 +109,7 @@ export default function ReservationForm({ details, onChange }: Props) {
 					value={details.guests}
 					onChange={handleChange}
 					min={1}
-					max={8} // Max seats for largest regular table
+					max={10} // Max seats for largest regular table
 					className="border-2 border-[#989793] rounded-lg p-3 focus:border-[#7A7A76] focus:outline-none focus:ring-2 focus:ring-[#7A7A76]/20 transition-all placeholder:text-gray-400"
 				/>
 			</label>

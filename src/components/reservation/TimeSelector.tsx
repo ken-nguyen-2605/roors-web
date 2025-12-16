@@ -60,7 +60,9 @@ export default function TimeSelector({ selectedTime, onSelect }: Props) {
             return (
               <button
                 key={hour}
-                ref={(el) => (buttonRefs.current[timeLabel] = el)}
+                ref={(el) => {
+                  buttonRefs.current[timeLabel] = el
+                }}
                 onClick={() => onSelect(timeLabel)}
                 className={`
                   relative min-w-[80px] px-5 py-2.5 rounded-lg 

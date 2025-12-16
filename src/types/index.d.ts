@@ -5,8 +5,10 @@ declare global {
         id: number;
         names: string;
         images: string;
-        prices?: number;
+        categories?: string[];
+        price: number;
         descriptions?: string;
         ingredients?: string;
+        rating: number
     }
 }

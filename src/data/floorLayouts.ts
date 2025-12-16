@@ -1,6 +1,21 @@
 // data/floorLayouts.ts
 import { FloorLayout } from "@/types/reservation";
 
+const F2_T4_OFFSET_X = -15;
+const F2_T4_OFFSET_Y = 25;
+
+const F2_T8_OFFSET_X = 5;
+const F2_T8_OFFSET_Y = 260;
+const F2_T8_SPACE_X = 110;
+
+const F3_T8_OFFSET_X = 5;
+const F3_T8_OFFSET_Y = 75;
+const F3_T8_SPACE_X = 110;
+
+const F3_T10_OFFSET_X = 50;
+const F3_T10_OFFSET_Y = 225;
+const F3_T10_SPACE_X = 175;
+
 export const floorLayouts: Record<number, FloorLayout> = {
 	1: {
 		tables: [
@@ -33,22 +48,44 @@ export const floorLayouts: Record<number, FloorLayout> = {
 	},
 	2: {
 		tables: [
-			{ id: "f2-t1", x: 50, y: 50, seats: 4, tableNumber: "T21", rotation: 45 },
-			{ id: "f2-t2", x: 200, y: 50, seats: 4, tableNumber: "T22" },
-			{ id: "f2-t3", x: 450, y: 50, seats: 2, tableNumber: "T23" },
-			{ id: "f2-t4", x: 50, y: 200, seats: 8, tableNumber: "T24" },
-			{ id: "f2-t5", x: 300, y: 200, seats: 4, tableNumber: "T25" },
-			{ id: "f2-t6", x: 50, y: 300, seats: 2, tableNumber: "T26" },
+			{ id: "f2-t25", x: F2_T4_OFFSET_X + 50, y: F2_T4_OFFSET_Y, seats: 4, tableNumber: "T25" },
+			{ id: "f2-t26", x: F2_T4_OFFSET_X + 200, y: F2_T4_OFFSET_Y, seats: 4, tableNumber: "T26" },
+			{ id: "f2-t27", x: F2_T4_OFFSET_X + 350, y: F2_T4_OFFSET_Y, seats: 4, tableNumber: "T27" },
+			{ id: "f2-t28", x: F2_T4_OFFSET_X + 500, y: F2_T4_OFFSET_Y, seats: 4, tableNumber: "T28" },
+			{ id: "f2-t29", x: F2_T4_OFFSET_X + 650, y: F2_T4_OFFSET_Y, seats: 4, tableNumber: "T29" },
+			{ id: "f2-t30", x: F2_T4_OFFSET_X + 800, y: F2_T4_OFFSET_Y, seats: 4, tableNumber: "T30" },
+			{ id: "f2-t31", x: F2_T4_OFFSET_X + 50, y: F2_T4_OFFSET_Y + 100, seats: 4, tableNumber: "T31" },
+			{ id: "f2-t32", x: F2_T4_OFFSET_X + 200, y: F2_T4_OFFSET_Y + 100, seats: 4, tableNumber: "T32" },
+			{ id: "f2-t33", x: F2_T4_OFFSET_X + 350, y: F2_T4_OFFSET_Y + 100, seats: 4, tableNumber: "T33" },
+			{ id: "f2-t34", x: F2_T4_OFFSET_X + 500, y: F2_T4_OFFSET_Y + 100, seats: 4, tableNumber: "T34" },
+			{ id: "f2-t35", x: F2_T4_OFFSET_X + 650, y: F2_T4_OFFSET_Y + 100, seats: 4, tableNumber: "T35" },
+			{ id: "f2-t36", x: F2_T4_OFFSET_X + 800, y: F2_T4_OFFSET_Y + 100, seats: 4, tableNumber: "T36" },
+			{ id: "f2-t37", x: F2_T8_OFFSET_X + F2_T8_SPACE_X * 0, y: F2_T8_OFFSET_Y, seats: 8, tableNumber: "T37", rotation: 90 },
+			{ id: "f2-t38", x: F2_T8_OFFSET_X + F2_T8_SPACE_X * 1, y: F2_T8_OFFSET_Y, seats: 8, tableNumber: "T38", rotation: 90 },
+			{ id: "f2-t39", x: F2_T8_OFFSET_X + F2_T8_SPACE_X * 2, y: F2_T8_OFFSET_Y, seats: 8, tableNumber: "T39", rotation: 90 },
+			{ id: "f2-t40", x: F2_T8_OFFSET_X + F2_T8_SPACE_X * 3, y: F2_T8_OFFSET_Y, seats: 8, tableNumber: "T40", rotation: 90 },
+			{ id: "f2-t41", x: F2_T8_OFFSET_X + F2_T8_SPACE_X * 4, y: F2_T8_OFFSET_Y, seats: 8, tableNumber: "T41", rotation: 90 },
+			{ id: "f2-t42", x: F2_T8_OFFSET_X + F2_T8_SPACE_X * 5, y: F2_T8_OFFSET_Y, seats: 8, tableNumber: "T42", rotation: 90 },
+			{ id: "f2-t43", x: F2_T8_OFFSET_X + F2_T8_SPACE_X * 6, y: F2_T8_OFFSET_Y, seats: 8, tableNumber: "T43", rotation: 90 },
+			{ id: "f2-t44", x: F2_T8_OFFSET_X + F2_T8_SPACE_X * 7, y: F2_T8_OFFSET_Y, seats: 8, tableNumber: "T44", rotation: 90 },
 		],
 		vipRooms: [],
 	},
 	3: {
 		tables: [
-			{ id: "f3-t1", x: 50, y: 50, seats: 8, tableNumber: "T31" },
-			{ id: "f3-t2", x: 250, y: 50, seats: 8, tableNumber: "T32" },
-			{ id: "f3-t3", x: 50, y: 150, seats: 4, tableNumber: "T33" },
-			{ id: "f3-t4", x: 150, y: 150, seats: 4, tableNumber: "T34" },
-			{ id: "f3-t5", x: 400, y: 150, seats: 2, tableNumber: "T35" },
+			{ id: "f3-t45", x: F3_T8_OFFSET_X + F3_T8_SPACE_X * 0, y: F3_T8_OFFSET_Y, seats: 8, tableNumber: "T45", rotation: 90 },
+			{ id: "f3-t46", x: F3_T8_OFFSET_X + F3_T8_SPACE_X * 1, y: F3_T8_OFFSET_Y, seats: 8, tableNumber: "T46", rotation: 90 },
+			{ id: "f3-t47", x: F3_T8_OFFSET_X + F3_T8_SPACE_X * 2, y: F3_T8_OFFSET_Y, seats: 8, tableNumber: "T47", rotation: 90 },
+			{ id: "f3-t48", x: F3_T8_OFFSET_X + F3_T8_SPACE_X * 3, y: F3_T8_OFFSET_Y, seats: 8, tableNumber: "T48", rotation: 90 },
+			{ id: "f3-t49", x: F3_T8_OFFSET_X + F3_T8_SPACE_X * 4, y: F3_T8_OFFSET_Y, seats: 8, tableNumber: "T49", rotation: 90 },
+			{ id: "f3-t50", x: F3_T8_OFFSET_X + F3_T8_SPACE_X * 5, y: F3_T8_OFFSET_Y, seats: 8, tableNumber: "T50", rotation: 90 },
+			{ id: "f3-t51", x: F3_T8_OFFSET_X + F3_T8_SPACE_X * 6, y: F3_T8_OFFSET_Y, seats: 8, tableNumber: "T51", rotation: 90 },
+			{ id: "f3-t52", x: F3_T8_OFFSET_X + F3_T8_SPACE_X * 7, y: F3_T8_OFFSET_Y, seats: 8, tableNumber: "T52", rotation: 90 },
+			{ id: "f3-t53", x: F3_T10_OFFSET_X + F3_T10_SPACE_X * 0, y: F3_T10_OFFSET_Y, seats: 10, tableNumber: "T53" },
+			{ id: "f3-t54", x: F3_T10_OFFSET_X + F3_T10_SPACE_X * 1, y: F3_T10_OFFSET_Y, seats: 10, tableNumber: "T54" },
+			{ id: "f3-t55", x: F3_T10_OFFSET_X + F3_T10_SPACE_X * 2, y: F3_T10_OFFSET_Y, seats: 10, tableNumber: "T55" },
+			{ id: "f3-t56", x: F3_T10_OFFSET_X + F3_T10_SPACE_X * 3, y: F3_T10_OFFSET_Y, seats: 10, tableNumber: "T56" },
+			{ id: "f3-t57", x: F3_T10_OFFSET_X + F3_T10_SPACE_X * 4, y: F3_T10_OFFSET_Y, seats: 10, tableNumber: "T57" },
 		],
 		vipRooms: [],
 	},
