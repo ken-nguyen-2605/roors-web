@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from 'react';
 import { useRouter } from "next/navigation";
 import profileService from "@/services/profileService";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { Inria_Serif } from 'next/font/google';
 const inriaSerif = Inria_Serif({
@@ -181,11 +182,12 @@ export default function ProfilePage() {
   const [loadingLiked, setLoadingLiked] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
+  const { user, isAuthenticated } = useAuth();
+
+  const resolvedId = user?.id ?? getStoredUserId();
 
   useEffect(() => {
     let isMounted = true;
-    // const resolvedId = getStoredUserId();
-    const resolvedId = 253;
     console.log('Resolved User ID:', resolvedId);
     setUserId(resolvedId);
 
@@ -260,7 +262,6 @@ export default function ProfilePage() {
     if (!userId) {
       setPersistedProfile(profileData);
       setIsEditing(false);
-      alert('Profile updated locally.');
       return;
     }
 
@@ -276,7 +277,6 @@ export default function ProfilePage() {
       });
       setPersistedProfile(profileData);
       setIsEditing(false);
-      alert('Profile updated successfully!');
     } catch (error: any) {
       console.error('Failed to update profile:', error);
       alert(error?.message || 'Failed to update profile. Please try again.');
@@ -320,6 +320,7 @@ export default function ProfilePage() {
       // Clear local auth/session data
       if (typeof window !== 'undefined') {
         localStorage.removeItem('authToken');
+        localStorage.removeItem('token');
         localStorage.removeItem('userInfo');
       }
 

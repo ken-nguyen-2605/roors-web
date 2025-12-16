@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState, useMemo, useEffect } from 'react';
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { FaStar } from "react-icons/fa";
@@ -28,6 +29,8 @@ const italiana = Italiana({
 });
 
 export default function Menu() {
+    const router = useRouter(); // Initialize router
+    const pathname = usePathname();
     // UI State
     const [showNote, setShowNote] = useState(false);
     const [showCustom, setShowCustom] = useState(false);
@@ -181,7 +184,8 @@ export default function Menu() {
 
     const handleLikeToggle = async (menuItemId: number, shouldLike: boolean) => {
         if (!isAuthenticated) {
-            // Optionally redirect to login or show a message
+            const encodedPath = encodeURIComponent(pathname);
+            router.push(`/auth/login?redirect=${encodedPath}`);
             return;
         }
 
