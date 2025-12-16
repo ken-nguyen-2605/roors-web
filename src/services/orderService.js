@@ -76,7 +76,7 @@ class OrderService {
       if (search) params.set('search', search);
 
       const qs = params.toString();
-      const response = await apiService.get(`/api/admin/orders?${qs}`);
+      const response = await apiService.get(`/api/orders?${qs}`);
       return {
         success: true,
         data: response,
@@ -103,7 +103,7 @@ class OrderService {
       if (orderType) params.set('orderType', orderType);
 
       const qs = params.toString();
-      const response = await apiService.get(`/api/admin/orders/status/${status}?${qs}`);
+      const response = await apiService.get(`/api/orders/status/${status}?${qs}`);
       
       return {
         success: true,
@@ -120,6 +120,25 @@ class OrderService {
       };
     }
   }
+    async reOrder(orderId) {
+    try {
+      // POST to /api/orders/{id}/reorder
+      const response = await apiService.post(`/api/orders/${orderId}/reorder`);
+
+      return {
+        success: true,
+        data: response,
+        message: 'Order reordered successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Failed to reorder order',
+        status: error.status,
+      };
+    }
+  }
+
 
 
   /**
@@ -135,7 +154,7 @@ class OrderService {
       if (status) params.set('status', status);
 
       const qs = params.toString();
-      const response = await apiService.get(`/api/admin/orders/date/${date}?${qs}`);
+      const response = await apiService.get(`/api/orders/date/${date}?${qs}`);
       
       console.log('Orders by Date Response:', response);
 
@@ -216,7 +235,7 @@ class OrderService {
   // Update order status only
   async updateStatus(orderId, status) {
     try {
-      const response = await apiService.put(`/api/admin/orders/${orderId}/status?status=${status}`, {});
+      const response = await apiService.put(`/api/orders/${orderId}/status?status=${status}`, {});
 
       return {
         success: true,

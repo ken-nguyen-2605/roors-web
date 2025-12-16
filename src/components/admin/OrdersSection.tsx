@@ -41,17 +41,29 @@ export default function OrdersSection() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchOrderId, setSearchOrderId] = useState<string>('');
+  const [isSearchMode, setIsSearchMode] = useState(false);
 
   const statuses = ['All', 'PENDING', 'PREPARING', 'READY', 'DELIVERED', 'CANCELLED'];
 
+  const normalizeOrders = (data: any): Order[] => {
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.content)) return data.content;
+    return [];
+  };
+
   // Fetch orders when date changes
   useEffect(() => {
-    fetchOrdersByDate(selectedDate);
-  }, [selectedDate]);
+    // If we're currently showing search results, don't auto-refetch by date
+    if (!isSearchMode) {
+      fetchOrdersByDate(selectedDate);
+    }
+  }, [selectedDate, isSearchMode]);
 
   const fetchOrdersByDate = async (date: string) => {
     setLoading(true);
     setError(null);
+    setIsSearchMode(false);
     try {
       const response = await orderService.getOrdersByDate(date, {
         page: 0,
@@ -59,7 +71,7 @@ export default function OrdersSection() {
       });
 
       if (response.success) {
-        setOrders(response.data || []);
+        setOrders(normalizeOrders(response.data));
       } else {
         setError(response.message || 'Failed to fetch orders');
         setOrders([]);
@@ -73,9 +85,57 @@ export default function OrdersSection() {
     }
   };
 
-  // Filter orders by status
+  // Fetch orders by searching order ID (or generic search)
+  const fetchOrdersBySearch = async (query: string) => {
+    const trimmed = query.trim();
+
+    if (!trimmed) {
+      // Empty search -> go back to date mode
+      setIsSearchMode(false);
+      fetchOrdersByDate(selectedDate);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      // Use listOrders search so partial IDs can also match.
+      // Cast to any to satisfy the current TypeScript signature, which
+      // doesn't yet include the `search` field.
+      const response = await (orderService.listOrders as any)({
+        page: 0,
+        size: 100,
+        search: trimmed,
+      });
+
+      if (response.success) {
+        setOrders(normalizeOrders(response.data));
+        setIsSearchMode(true);
+      } else {
+        setError(response.message || 'Failed to search orders');
+        setOrders([]);
+        setIsSearchMode(true);
+      }
+    } catch (err) {
+      setError('An error occurred while searching orders');
+      setOrders([]);
+      setIsSearchMode(true);
+      console.error('Error searching orders:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter orders by status and order ID
   const filteredOrders = orders.filter(order => {
-    return filterStatus === 'All' || order.status === filterStatus;
+    const statusMatch = filterStatus === 'All' || order.status === filterStatus;
+    const normalizedOrderId = (order.id ?? '').toString().toLowerCase();
+    const normalizedSearch = searchOrderId.trim().toLowerCase();
+    const searchMatch =
+      !normalizedSearch ||
+      normalizedOrderId.includes(normalizedSearch);
+
+    return statusMatch && searchMatch;
   });
 
   // Get count of orders for each status
@@ -208,28 +268,73 @@ export default function OrdersSection() {
       </div>
 
       {/* Status Filter */}
-      <div className="flex flex-wrap gap-2">
-        {statuses.map((status) => {
-          const count = getStatusCount(status);
+      <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+        <div className="flex flex-wrap gap-2">
+          {statuses.map((status) => {
+            const count = getStatusCount(status);
 
-          return (
+            return (
+              <button
+                key={status}
+                onClick={() => setFilterStatus(status)}
+                className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
+                  filterStatus === status
+                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 shadow'
+                }`}
+              >
+                {status === 'All' ? 'All' : getStatusLabel(status as Order['status'])}
+                <span className="ml-2 text-xs">
+                  ({count})
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search by Order ID */}
+        <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+          <input
+            type="text"
+            value={searchOrderId}
+            onChange={(e) => setSearchOrderId(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                fetchOrdersBySearch(searchOrderId);
+              }
+            }}
+            placeholder="Search by Order ID (e.g. 12345)"
+            className="bg-white w-full lg:w-64 px-4 py-2 rounded-xl border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+          />
+          <div className="flex gap-2">
             <button
-              key={status}
-              onClick={() => setFilterStatus(status)}
-              className={`px-4 py-2 rounded-xl font-medium text-sm transition-all ${
-                filterStatus === status
-                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 shadow'
-              }`}
+              type="button"
+              onClick={() => fetchOrdersBySearch(searchOrderId)}
+              className="px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 shadow-sm"
             >
-              {status === 'All' ? 'All' : getStatusLabel(status as Order['status'])}
-              <span className="ml-2 text-xs">
-                ({count})
-              </span>
+              Search
             </button>
-          );
-        })}
+            {isSearchMode && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchOrderId('');
+                  fetchOrdersByDate(selectedDate);
+                }}
+                className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 shadow-sm"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
       </div>
+
+      {isSearchMode && (
+        <div className="text-xs text-white/80">
+          Showing search results for: <span className="font-semibold text-white">{searchOrderId.trim()}</span>
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (
@@ -285,7 +390,7 @@ export default function OrdersSection() {
                         </div>
                       </td>
                       <td className="px-6 py-4 font-semibold text-gray-900">
-                        ${order.totalAmount.toFixed(2)}
+                        {order.totalAmount.toFixed(2)} VND
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
@@ -410,8 +515,8 @@ function OrderDetailModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-8">
-        <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-4 flex items-center justify-between rounded-t-2xl">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-8 max-h-[calc(100vh-2rem)] flex flex-col">
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-4 flex items-center justify-between rounded-t-2xl">
           <div>
             <h3 className="text-xl font-bold">Order Details</h3>
             <p className="text-sm text-white/90 mt-1">Order ID: #{order.id}</p>
@@ -421,7 +526,7 @@ function OrderDetailModal({
           </button>
         </div>
         
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Order Status & Time */}
           <div className="flex items-center justify-between pb-4 border-b">
             <div>
@@ -504,7 +609,7 @@ function OrderDetailModal({
                       </div>
                       <div className="flex-1">
                         <span className="font-medium text-gray-900 block">{item.menuItemName}</span>
-                        <span className="text-sm text-gray-600">${item.unitPrice.toFixed(2)} each</span>
+                        <span className="text-sm text-gray-600">{item.unitPrice.toFixed(2)} VND each</span>
                         {item.specialInstructions && (
                           <div className="mt-2 text-sm text-gray-600 bg-white rounded px-3 py-2 border border-gray-200">
                             <span className="font-medium">Note:</span> {item.specialInstructions}
@@ -512,7 +617,7 @@ function OrderDetailModal({
                         )}
                       </div>
                     </div>
-                    <span className="font-semibold text-gray-900 ml-4">${item.subtotal.toFixed(2)}</span>
+                    <span className="font-semibold text-gray-900 ml-4">{item.subtotal.toFixed(2)} VND</span>
                   </div>
                 </div>
               ))}
@@ -528,21 +633,21 @@ function OrderDetailModal({
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Subtotal:</span>
-                <span className="font-medium">${order.subtotal.toFixed(2)}</span>
+                <span className="font-medium">{order.subtotal.toFixed(2)} VND</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Tax:</span>
-                <span className="font-medium">${order.taxAmount.toFixed(2)}</span>
+                <span className="font-medium">{order.taxAmount.toFixed(2)} VND</span>
               </div>
               {order.deliveryFee > 0 && (
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Delivery Fee:</span>
-                  <span className="font-medium">${order.deliveryFee.toFixed(2)}</span>
+                  <span className="font-medium">{order.deliveryFee.toFixed(2)} VND</span>
                 </div>
               )}
               <div className="pt-3 border-t-2 border-gray-200 flex justify-between items-center">
                 <span className="font-bold text-lg text-gray-900">Total Amount:</span>
-                <span className="font-bold text-2xl text-orange-600">${order.totalAmount.toFixed(2)}</span>
+                <span className="font-bold text-2xl text-orange-600">{order.totalAmount.toFixed(2)} VND</span>
               </div>
             </div>
           </div>

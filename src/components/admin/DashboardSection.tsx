@@ -11,29 +11,29 @@ interface MetricCardProps {
   trend?: 'up' | 'down';
 }
 
-function MetricCard({ label, value, change, icon, trend }: MetricCardProps) {
-  return (
-    <div className="rounded-2xl border-2 border-white/20 bg-white shadow-xl p-6 hover:shadow-2xl transition-all hover:scale-105">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="text-xs text-gray-600 font-medium uppercase tracking-wide">{label}</div>
-          <div className="mt-3 text-3xl font-bold text-gray-900">{value}</div>
-          {change !== undefined && (
-            <div className={`mt-2 flex items-center gap-1 text-sm font-medium ${
-              trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-gray-600'
-            }`}>
-              {trend === 'up' ? <TrendingUp className="w-4 h-4" /> : trend === 'down' ? <TrendingDown className="w-4 h-4" /> : null}
-              <span>{Math.abs(change)}% vs yesterday</span>
-            </div>
-          )}
-        </div>
-        <div className="rounded-xl bg-gradient-to-br from-orange-500 to-red-500 p-3 text-white shadow-lg">
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
+// function MetricCard({ label, value, change, icon, trend }: MetricCardProps) {
+//   return (
+//     <div className="rounded-2xl border-2 border-white/20 bg-white shadow-xl p-6 hover:shadow-2xl transition-all hover:scale-105">
+//       <div className="flex items-start justify-between">
+//         <div className="flex-1">
+//           <div className="text-xs text-gray-600 font-medium uppercase tracking-wide">{label}</div>
+//           <div className="mt-3 text-3xl font-bold text-gray-900">{value}</div>
+//           {change !== undefined && (
+//             <div className={`mt-2 flex items-center gap-1 text-sm font-medium ${
+//               trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-gray-600'
+//             }`}>
+//               {trend === 'up' ? <TrendingUp className="w-4 h-4" /> : trend === 'down' ? <TrendingDown className="w-4 h-4" /> : null}
+//               <span>{Math.abs(change)}% vs yesterday</span>
+//             </div>
+//           )}
+//         </div>
+//         <div className="rounded-xl bg-gradient-to-br from-orange-500 to-red-500 p-3 text-white shadow-lg">
+//           {icon}
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
 
 export default function DashboardSection() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -74,9 +74,9 @@ export default function DashboardSection() {
           </div>
           <div className="text-white/80 text-sm">Real-time updates</div>
         </div>
-      </div>
+      </div>  
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           label="Today's Sales"
           value={`$${metrics.todaySales.toFixed(2)}`}
@@ -105,10 +105,10 @@ export default function DashboardSection() {
           trend="down"
           icon={<Users className="w-6 h-6" />}
         />
-      </div>
+      </div> */}
 
       {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-2xl border-2 border-white/20 bg-white shadow-xl p-6">
           <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-orange-500" />
@@ -168,7 +168,7 @@ export default function DashboardSection() {
             ))}
           </div>
         </div>
-      </div>
+      </div> */}
     </section>
   );
 }

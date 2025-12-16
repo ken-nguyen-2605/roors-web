@@ -5,7 +5,7 @@ import Sidebar from './Sidebar';
 import DashboardSection from './DashboardSection';
 import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Shield } from 'lucide-react';
 import { col } from 'framer-motion/client';
 
@@ -17,7 +17,10 @@ export default function AdminWireframe({ children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isManager, setIsManager] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false); // manager or staff
+  const [checkedAuth, setCheckedAuth] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   // Get page title based on current path
   const getPageTitle = () => {
@@ -42,16 +45,39 @@ export default function AdminWireframe({ children }: Props) {
       try {
         const parsed = raw ? JSON.parse(raw) : null;
         console.log('Parsed user info for role check:', parsed?.role);
-        if (parsed?.role === 'MANAGER') {
-          setIsManager(true);
-        } else {
-          setIsManager(false);
+        const role = (parsed?.role || '').toUpperCase();
+        const isMgr = role === 'MANAGER';
+        const isStaff = role === 'STAFF';
+        setIsManager(isMgr);
+        setIsAuthorized(isMgr || isStaff);
+        setCheckedAuth(true);
+        if (!isMgr && !isStaff) {
+          router.push('/');
         }
       } catch (e) {
         setIsManager(false);
+        setIsAuthorized(false);
+        setCheckedAuth(true);
+        router.push('/');
       }
     }
-  }, []);
+  }, [router]);
+
+  if (!checkedAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-600">Checking access...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-700">Unauthorized.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[500] relative">
@@ -99,7 +125,7 @@ export default function AdminWireframe({ children }: Props) {
                       {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </div>
                   </div>
-                  {isManager && (
+                  {/* {isManager && (
                     <Link
                       href="/admin/users"
                       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
@@ -107,7 +133,7 @@ export default function AdminWireframe({ children }: Props) {
                       <Shield className="w-4 h-4" />
                       Manage Users
                     </Link>
-                  )}
+                  )} */}
                 </div>
               </div>
             </div>
