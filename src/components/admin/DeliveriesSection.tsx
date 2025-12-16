@@ -210,13 +210,13 @@ export default function DeliveriesSection() {
         setAvailableOrders(availableOrders.filter(o => o.id !== order.id));
         setMyDeliveries([updatedOrder, ...myDeliveries]);
         
-        alert(`Đã nhận đơn giao hàng ${order.id}`);
+        alert(`Accepted delivery order ${order.id}`);
       } else {
         alert(`Lỗi: ${response.message}`);
       }
     } catch (err) {
       console.error('Error accepting order:', err);
-      alert('Không thể nhận đơn hàng. Vui lòng thử lại.');
+      alert('Unable to accept the order. Please try again.');
     }
   };
 
@@ -244,22 +244,22 @@ export default function DeliveriesSection() {
         setShowConfirmModal(false);
         setSelectedOrder(null);
         
-        alert(`Đã xác nhận giao hàng thành công cho đơn ${selectedOrder.id}`);
+        alert(`Successfully confirmed delivery for order ${selectedOrder.id}`);
       } else {
         alert(`Lỗi: ${response.message}`);
       }
     } catch (err) {
       console.error('Error completing delivery:', err);
-      alert('Không thể hoàn thành đơn hàng. Vui lòng thử lại.');
+      alert('Unable to complete the order. Please try again.');
     }
   };
 
   const getTimeSince = (date: Date) => {
     const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
-    if (minutes < 1) return 'Vừa xong';
-    if (minutes < 60) return `${minutes} phút trước`;
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} minutes ago`;
     const hours = Math.floor(minutes / 60);
-    return `${hours} giờ ${minutes % 60} phút trước`;
+    return `${hours} hours ${minutes % 60} minutes ago`;
   };
 
   const totalEarnings = myDeliveries
@@ -273,14 +273,14 @@ export default function DeliveriesSection() {
     <section id="deliveries" className="space-y-6">
       {/* Header with Refresh Button */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Quản lý giao hàng</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Delivery Management</h2>
         <button
           onClick={fetchOrders}
           disabled={isLoading}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/80 backdrop-blur-md border-2 border-white/40 shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
         >
           <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-          <span className="font-semibold">Làm mới</span>
+          <span className="font-semibold">Refresh</span>
         </button>
       </div>
 
@@ -297,7 +297,7 @@ export default function DeliveriesSection() {
         <div className="rounded-2xl border-2 border-white/30 bg-gradient-to-br from-orange-50/70 to-white/70 backdrop-blur-xl shadow-xl p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-gray-700 drop-shadow-sm">Đơn khả dụng</p>
+              <p className="text-sm font-semibold text-gray-700 drop-shadow-sm">Available Orders</p>
               <p className="text-3xl font-bold text-orange-600 drop-shadow-md">{availableOrders.length}</p>
             </div>
             <Package className="w-12 h-12 text-orange-500 opacity-80" />
@@ -307,7 +307,7 @@ export default function DeliveriesSection() {
         <div className="rounded-2xl border-2 border-white/30 bg-gradient-to-br from-blue-50/70 to-white/70 backdrop-blur-xl shadow-xl p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-gray-700 drop-shadow-sm">Đang giao</p>
+              <p className="text-sm font-semibold text-gray-700 drop-shadow-sm">In Delivery</p>
               <p className="text-3xl font-bold text-blue-600 drop-shadow-md">{inProgressCount}</p>
             </div>
             <Navigation className="w-12 h-12 text-blue-500 opacity-80" />
@@ -317,7 +317,7 @@ export default function DeliveriesSection() {
         <div className="rounded-2xl border-2 border-white/30 bg-gradient-to-br from-green-50/70 to-white/70 backdrop-blur-xl shadow-xl p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-gray-700 drop-shadow-sm">Đã hoàn thành</p>
+              <p className="text-sm font-semibold text-gray-700 drop-shadow-sm">Completed</p>
               <p className="text-3xl font-bold text-green-600 drop-shadow-md">{completedCount}</p>
             </div>
             <CheckCircle className="w-12 h-12 text-green-500 opacity-80" />
@@ -337,7 +337,7 @@ export default function DeliveriesSection() {
         >
           <div className="flex items-center justify-center gap-2">
             <Package className="w-5 h-5" />
-            Đơn khả dụng ({availableOrders.length})
+            Available Orders ({availableOrders.length})
           </div>
         </button>
         <button
@@ -350,7 +350,7 @@ export default function DeliveriesSection() {
         >
           <div className="flex items-center justify-center gap-2">
             <Navigation className="w-5 h-5" />
-            Đơn của tôi ({myDeliveries.length})
+            My Deliveries ({myDeliveries.length})
           </div>
         </button>
       </div>
@@ -371,8 +371,8 @@ export default function DeliveriesSection() {
           {availableOrders.length === 0 ? (
             <div className="rounded-2xl border-2 border-white/30 bg-white/70 backdrop-blur-xl shadow-2xl p-12 text-center">
               <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2 drop-shadow-sm">Không có đơn hàng nào</h3>
-              <p className="text-gray-700 font-medium drop-shadow-sm">Hiện tại không có đơn giao hàng nào cần nhận</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-2 drop-shadow-sm">No Orders Available</h3>
+              <p className="text-gray-700 font-medium drop-shadow-sm">There are currently no delivery orders to accept</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -393,8 +393,8 @@ export default function DeliveriesSection() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Tổng tiền</div>
-                      <div className="text-xl font-bold text-green-700 drop-shadow-md">${order.total.toFixed(2)}</div>
+                      <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Total</div>
+                      <div className="text-xl font-bold text-green-700 drop-shadow-md">{order.total.toFixed(2)} VND</div>
                     </div>
                   </div>
 
@@ -403,7 +403,7 @@ export default function DeliveriesSection() {
                     <div className="flex items-start gap-2">
                       <User className="w-4 h-4 text-orange-500 mt-1 flex-shrink-0" />
                       <div className="flex-1">
-                        <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Khách hàng</div>
+                        <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Customer</div>
                         <div className="text-sm font-bold text-gray-900 drop-shadow-sm">{order.customerName}</div>
                       </div>
                     </div>
@@ -411,7 +411,7 @@ export default function DeliveriesSection() {
                     <div className="flex items-start gap-2">
                       <Phone className="w-4 h-4 text-orange-500 mt-1 flex-shrink-0" />
                       <div className="flex-1">
-                        <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Số điện thoại</div>
+                        <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Phone Number</div>
                         <div className="text-sm font-bold text-gray-900 drop-shadow-sm">{order.customerPhone}</div>
                       </div>
                     </div>
@@ -419,7 +419,7 @@ export default function DeliveriesSection() {
                     <div className="flex items-start gap-2">
                       <MapPin className="w-4 h-4 text-orange-500 mt-1 flex-shrink-0" />
                       <div className="flex-1">
-                        <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Địa chỉ giao hàng</div>
+                        <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Delivery Address</div>
                         <div className="text-sm font-bold text-gray-900 drop-shadow-sm">{order.deliveryAddress}</div>
                       </div>
                     </div>
@@ -428,7 +428,7 @@ export default function DeliveriesSection() {
                       <div className="flex items-start gap-2">
                         <AlertCircle className="w-4 h-4 text-orange-500 mt-1 flex-shrink-0" />
                         <div className="flex-1">
-                          <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Ghi chú</div>
+                          <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Notes</div>
                           <div className="text-sm font-bold text-gray-900 drop-shadow-sm">{order.specialInstructions}</div>
                         </div>
                       </div>
@@ -437,14 +437,14 @@ export default function DeliveriesSection() {
 
                   {/* Order Items */}
                   <div className="mb-4">
-                    <div className="text-xs text-gray-700 font-semibold mb-2 drop-shadow-sm">Món ăn:</div>
+                    <div className="text-xs text-gray-700 font-semibold mb-2 drop-shadow-sm">Items:</div>
                     <div className="space-y-1">
                       {order.items.map((item, idx) => (
                         <div key={idx} className="flex justify-between text-sm bg-white/60 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md border border-white/40">
                           <span className="font-medium text-gray-900 drop-shadow-sm">
                             {item.quantity}x {item.name}
                           </span>
-                          <span className="font-bold text-gray-900 drop-shadow-sm">${(item.price * item.quantity).toFixed(2)}</span>
+                          <span className="font-bold text-gray-900 drop-shadow-sm">{(item.price * item.quantity).toFixed(2)} VND</span>
                         </div>
                       ))}
                     </div>
@@ -468,7 +468,7 @@ export default function DeliveriesSection() {
                     className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold shadow-xl hover:shadow-2xl transition-all hover:scale-105 flex items-center justify-center gap-2"
                   >
                     <CheckCircle className="w-5 h-5" />
-                    Nhận đơn giao hàng
+                    Accept Delivery Order
                   </button>
                 </div>
               ))}
@@ -483,8 +483,8 @@ export default function DeliveriesSection() {
           {myDeliveries.length === 0 ? (
             <div className="rounded-2xl border-2 border-white/30 bg-white/70 backdrop-blur-xl shadow-2xl p-12 text-center">
               <Navigation className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2 drop-shadow-sm">Chưa có đơn giao hàng</h3>
-              <p className="text-gray-700 font-medium drop-shadow-sm">Hãy nhận đơn từ phần "Đơn khả dụng"</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-2 drop-shadow-sm">No Delivery Orders Yet</h3>
+              <p className="text-gray-700 font-medium drop-shadow-sm">Please accept orders from the "Available Orders" section</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -512,19 +512,19 @@ export default function DeliveriesSection() {
                         <div className="font-bold text-lg text-gray-900 drop-shadow-sm">{order.id}</div>
                         {order.status === 'Completed' ? (
                           <div className="px-2 py-1 rounded-full text-xs font-bold bg-green-200/80 text-green-900 inline-block backdrop-blur-sm">
-                            ✓ Đã hoàn thành
+                            ✓ Completed
                           </div>
                         ) : (
                           <div className="px-2 py-1 rounded-full text-xs font-bold bg-orange-200/80 text-orange-900 inline-block backdrop-blur-sm">
-                            Đang giao hàng
+                            Delivering
                           </div>
                         )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Tổng tiền</div>
-                      <div className="text-xl font-bold text-green-700 drop-shadow-md">${order.total.toFixed(2)}</div>
-                      <div className="text-xs text-green-700 font-bold drop-shadow-sm">Hoa hồng: ${(order.total * 0.1).toFixed(2)}</div>
+                      <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Total</div>
+                      <div className="text-xl font-bold text-green-700 drop-shadow-md">{order.total.toFixed(2)} VND</div>
+                      <div className="text-xs text-green-700 font-bold drop-shadow-sm">Commission: {(order.total * 0.1).toFixed(2)} VND</div>
                     </div>
                   </div>
 
@@ -533,7 +533,7 @@ export default function DeliveriesSection() {
                     <div className="flex items-start gap-2">
                       <User className="w-4 h-4 text-orange-500 mt-1 flex-shrink-0" />
                       <div className="flex-1">
-                        <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Khách hàng</div>
+                        <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Customer</div>
                         <div className="text-sm font-bold text-gray-900 drop-shadow-sm">{order.customerName}</div>
                       </div>
                     </div>
@@ -541,7 +541,7 @@ export default function DeliveriesSection() {
                     <div className="flex items-start gap-2">
                       <Phone className="w-4 h-4 text-orange-500 mt-1 flex-shrink-0" />
                       <div className="flex-1">
-                        <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Số điện thoại</div>
+                        <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Phone Number</div>
                         <a href={`tel:${order.customerPhone}`} className="text-sm font-bold text-blue-600 hover:text-blue-700 drop-shadow-sm">
                           {order.customerPhone}
                         </a>
@@ -551,7 +551,7 @@ export default function DeliveriesSection() {
                     <div className="flex items-start gap-2">
                       <MapPin className="w-4 h-4 text-orange-500 mt-1 flex-shrink-0" />
                       <div className="flex-1">
-                        <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Địa chỉ giao hàng</div>
+                        <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Delivery Address</div>
                         <div className="text-sm font-bold text-gray-900 drop-shadow-sm">{order.deliveryAddress}</div>
                       </div>
                     </div>
@@ -560,7 +560,7 @@ export default function DeliveriesSection() {
                       <div className="flex items-start gap-2">
                         <AlertCircle className="w-4 h-4 text-orange-500 mt-1 flex-shrink-0" />
                         <div className="flex-1">
-                          <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Ghi chú</div>
+                          <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Notes</div>
                           <div className="text-sm font-bold text-gray-900 drop-shadow-sm">{order.specialInstructions}</div>
                         </div>
                       </div>
@@ -570,7 +570,7 @@ export default function DeliveriesSection() {
                       <div className="flex items-start gap-2">
                         <Clock className="w-4 h-4 text-green-500 mt-1 flex-shrink-0" />
                         <div className="flex-1">
-                          <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Hoàn thành lúc</div>
+                          <div className="text-xs text-gray-700 font-semibold drop-shadow-sm">Completed at</div>
                           <div className="text-sm font-bold text-gray-900 drop-shadow-sm">{getTimeSince(order.completedTime)}</div>
                         </div>
                       </div>
@@ -579,14 +579,14 @@ export default function DeliveriesSection() {
 
                   {/* Order Items */}
                   <div className="mb-4">
-                    <div className="text-xs text-gray-700 font-semibold mb-2 drop-shadow-sm">Món ăn:</div>
+                    <div className="text-xs text-gray-700 font-semibold mb-2 drop-shadow-sm">Items:</div>
                     <div className="space-y-1">
                       {order.items.map((item, idx) => (
                         <div key={idx} className="flex justify-between text-sm bg-white/60 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md border border-white/40">
                           <span className="font-medium text-gray-900 drop-shadow-sm">
                             {item.quantity}x {item.name}
                           </span>
-                          <span className="font-bold text-gray-900 drop-shadow-sm">${(item.price * item.quantity).toFixed(2)}</span>
+                          <span className="font-bold text-gray-900 drop-shadow-sm">{(item.price * item.quantity).toFixed(2)} VND</span>
                         </div>
                       ))}
                     </div>
@@ -602,14 +602,14 @@ export default function DeliveriesSection() {
                         className="px-4 py-3 rounded-xl bg-white/80 backdrop-blur-md text-gray-900 font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 border-2 border-white/40"
                       >
                         <MapPin className="w-5 h-5" />
-                        Dẫn đường
+                        Navigate
                       </a>
                       <button
                         onClick={() => handleCompleteDelivery(order)}
                         className="px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold shadow-xl hover:shadow-2xl transition-all hover:scale-105 flex items-center justify-center gap-2"
                       >
                         <CheckCircle className="w-5 h-5" />
-                        Hoàn thành
+                        Complete
                       </button>
                     </div>
                   )}
@@ -619,7 +619,7 @@ export default function DeliveriesSection() {
                     <div className="mt-3 p-3 bg-green-100/80 backdrop-blur-sm rounded-lg border border-green-300/50 text-center">
                       <div className="flex items-center justify-center gap-2 text-green-800 font-bold">
                         <CheckCircle className="w-5 h-5" />
-                        <span>Đơn hàng đã được giao thành công</span>
+                        <span>Order has been successfully delivered</span>
                       </div>
                     </div>
                   )}
@@ -636,30 +636,30 @@ export default function DeliveriesSection() {
           <div className="bg-white/95 backdrop-blur-2xl rounded-2xl shadow-3xl max-w-md w-full border-2 border-white/40 animate-[scale-in_0.2s_ease-out]">
             <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-4 rounded-t-2xl flex items-center gap-3">
               <CheckCircle className="w-6 h-6" />
-              <h3 className="text-xl font-bold">Xác nhận giao hàng</h3>
+              <h3 className="text-xl font-bold">Confirm Delivery</h3>
             </div>
             
             <div className="p-6 space-y-4">
               <div className="bg-green-50/80 backdrop-blur-sm rounded-xl p-4 border border-green-200/50">
                 <p className="text-gray-900 font-medium mb-3">
-                  Bạn có chắc chắn đã giao hàng thành công cho đơn hàng:
+                  Are you sure you have successfully delivered this order:
                 </p>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-gray-700 font-semibold">Mã đơn:</span>
+                    <span className="text-gray-700 font-semibold">Order ID:</span>
                     <span className="font-bold text-gray-900">{selectedOrder.id}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-700 font-semibold">Khách hàng:</span>
+                    <span className="text-gray-700 font-semibold">Customer:</span>
                     <span className="font-bold text-gray-900">{selectedOrder.customerName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-700 font-semibold">Tổng tiền:</span>
-                    <span className="font-bold text-green-700">${selectedOrder.total.toFixed(2)}</span>
+                    <span className="text-gray-700 font-semibold">Total Amount:</span>
+                    <span className="font-bold text-green-700">{selectedOrder.total.toFixed(2)} VND</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-700 font-semibold">Hoa hồng:</span>
-                    <span className="font-bold text-green-700">${(selectedOrder.total * 0.1).toFixed(2)}</span>
+                    <span className="text-gray-700 font-semibold">Commission:</span>
+                    <span className="font-bold text-green-700">{(selectedOrder.total * 0.1).toFixed(2)} VND</span>
                   </div>
                 </div>
               </div>
@@ -672,13 +672,13 @@ export default function DeliveriesSection() {
                   }}
                   className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-300 font-bold hover:bg-gray-50 transition-colors"
                 >
-                  Hủy
+                  Cancel
                 </button>
                 <button
                   onClick={confirmCompleteDelivery}
                   className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold shadow-xl hover:shadow-2xl transition-all"
                 >
-                  Xác nhận
+                  Confirm
                 </button>
               </div>
             </div>

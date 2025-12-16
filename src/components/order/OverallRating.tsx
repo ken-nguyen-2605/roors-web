@@ -71,10 +71,13 @@ export default function Rating({ feedbacklist, onSend }: FeedbackProps) {
   };
 
   const handleSaveAll = () => {
-    onSend(feedbackList);
+    // Only send items that have been rated (stars > 0)
+    const ratedItems = feedbackList.filter((item) => item.stars > 0);
+    onSend(ratedItems);
   };
 
-  const hasZeroStar = feedbackList.some((item) => item.stars === 0);
+  // Check if at least one item has been rated
+  const hasAnyRating = feedbackList.some((item) => item.stars > 0);
 
   const openDetail = (item: Order) => {
     setSelectedItem(item);
@@ -159,12 +162,12 @@ export default function Rating({ feedbacklist, onSend }: FeedbackProps) {
               <h5 className="text-md">Back</h5>
             </div>
             <div
-              onClick={hasZeroStar ? undefined : handleSaveAll}
+              onClick={hasAnyRating ? handleSaveAll : undefined}
               className={`${
-                hasZeroStar ? "opacity-50" : "cursor-pointer"
+                hasAnyRating ? "cursor-pointer" : "opacity-50 cursor-not-allowed"
               } bg-[#E0E0D9] flex justify-center items-center rounded-full h-3/5 w-[120px] leading-3/5 text-center text-md`}
             >
-              Save and send
+              {hasAnyRating ? "Save and send" : "Rate at least one item"}
             </div>
           </div>
         </div>

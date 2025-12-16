@@ -26,10 +26,10 @@ const colors = [
   "#989793",
 ]
 const dishes : Dish[] = [
-  {id: 1, names: "Korean Bulgogi Plate", images: "/dishes/dish7.jpg", descriptions: "Tender, thinly sliced beef marinated in a savory-sweet Korean bulgogi sauce, grilled to perfection. .", ingredients: "Marinated beef slices, garlic, soy sauce, sesame oil, onions, lettuce wraps, and chili flakes.", price: 59000, rating: 4.5},
-  {id: 2, names: "Crispy Shrimp Tacos", images: "/dishes/dish3.jpg", descriptions: "A vibrant fusion of spice and crunch — crispy shrimp tucked in warm tortillas with creamy chipotle aioli and a zesty slaw. Finished with a squeeze of fresh lime", ingredients: "Golden-fried shrimp, cabbage slaw, chipotle aioli, cilantro, lime wedges, and soft corn tortillas.", price: 79000, rating: 4.7},
-  {id: 3, names: "Pan-Seared Sea Bass", images: "/dishes/dish12.jpg", descriptions: "Delicate and flavorful, our sea bass is pan-seared until golden and paired with a velvety butter-lemon reduction. Complemented by creamy mashed potato and a touch of red pepper coulis ", ingredients: "Fresh sea bass fillet, butter-lemon sauce, baby carrots, mashed potato, and red pepper coulis.", price: 120000, rating: 4.9},
-  {id: 4, names: "Spicy Coconut Curry Noodles", images: "/dishes/dish8.jpg", descriptions: "A warm, aromatic bowl of noodles in a creamy coconut curry base — layered with bold spices, fresh shrimp, and a hint of sweetness. Topped with crispy wonton strips for texture", ingredients: "Egg noodles, coconut milk, chili paste, shrimp, crispy wonton strips, and lime leaves.", price: 68000, rating: 4.6},
+  {id: 1, name: "Korean Bulgogi Plate", image: "/dishes/dish7.jpg", description: "Tender, thinly sliced beef marinated in a savory-sweet Korean bulgogi sauce, grilled to perfection. .", ingredients: "Marinated beef slices, garlic, soy sauce, sesame oil, onions, lettuce wraps, and chili flakes.", price: 59000, rating: 4.5},
+  {id: 2, name: "Crispy Shrimp Tacos", image: "/dishes/dish3.jpg", description: "A vibrant fusion of spice and crunch — crispy shrimp tucked in warm tortillas with creamy chipotle aioli and a zesty slaw. Finished with a squeeze of fresh lime", ingredients: "Golden-fried shrimp, cabbage slaw, chipotle aioli, cilantro, lime wedges, and soft corn tortillas.", price: 79000, rating: 4.7},
+  {id: 3, name: "Pan-Seared Sea Bass", image: "/dishes/dish12.jpg", description: "Delicate and flavorful, our sea bass is pan-seared until golden and paired with a velvety butter-lemon reduction. Complemented by creamy mashed potato and a touch of red pepper coulis ", ingredients: "Fresh sea bass fillet, butter-lemon sauce, baby carrots, mashed potato, and red pepper coulis.", price: 120000, rating: 4.9},
+  {id: 4, name: "Spicy Coconut Curry Noodles", image: "/dishes/dish8.jpg", description: "A warm, aromatic bowl of noodles in a creamy coconut curry base — layered with bold spices, fresh shrimp, and a hint of sweetness. Topped with crispy wonton strips for texture", ingredients: "Egg noodles, coconut milk, chili paste, shrimp, crispy wonton strips, and lime leaves.", price: 68000, rating: 4.6},
 ]
 
 export default function Home() {
@@ -150,15 +150,15 @@ export default function Home() {
             data-aos-delay={i*100} 
             data-aos-duration="650">
               <Image 
-                src={dish.images}
+                src={dish.image}
                 alt=""
                 width={165}
                 height={110}
                 className="dish-view-image"
               />
               <div className={`py-1 text-[15px] text-left ${i === 2 ? "text-white" : "text-black"}`}>
-                <p className="font-medium" style={{ fontStyle: `italic` }}>{dish.names}</p>
-                <p>Description: {dish.descriptions}</p>
+                <p className="font-medium" style={{ fontStyle: `italic` }}>{dish.name}</p>
+                <p>Description: {dish.description}</p>
                 <p>Ingredients: {dish.ingredients}</p>
               </div>
             </div>

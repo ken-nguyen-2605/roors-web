@@ -11,6 +11,7 @@ import { useParams } from "next/navigation";
 
 import menuService from "@/services/menuService";
 import { useNoteStore } from "@/stores/useNoteStore";
+import { Icon } from "@iconify/react";
 
 import { Inria_Serif } from 'next/font/google';
 const inriaSerif = Inria_Serif({
@@ -146,6 +147,13 @@ function DishDetailContent({ dishId }: { dishId: number }) {
   const [loading, setLoading] = useState(true);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ratings, setRatings] = useState<Array<{
+    rating: number;
+    feedback: string;
+    ratedAt: string;
+    customerName: string;
+  }>>([]);
+  const [ratingsLoading, setRatingsLoading] = useState(false);
 
   // Fetch main dish
   useEffect(() => {
@@ -161,6 +169,9 @@ function DishDetailContent({ dishId }: { dishId: number }) {
         if (normalizedDish?.category?.id) {
           fetchRelated(normalizedDish.id, normalizedDish.category.id);
         }
+        
+        // Fetch dish ratings
+        fetchRatings(dishId);
       } catch (err: any) {
         console.error("Failed to load dish:", err);
         setError("Failed to load dish. Please try again later.");
@@ -190,6 +201,19 @@ function DishDetailContent({ dishId }: { dishId: number }) {
         setRelatedDishes([]);
       } finally {
         setRelatedLoading(false);
+      }
+    };
+
+    const fetchRatings = async (menuItemId: number) => {
+      try {
+        setRatingsLoading(true);
+        const res = await menuService.getDishRatings(menuItemId, 5);
+        setRatings(Array.isArray(res) ? res : []);
+      } catch (err) {
+        console.error("Failed to load ratings:", err);
+        setRatings([]);
+      } finally {
+        setRatingsLoading(false);
       }
     };
 
@@ -324,7 +348,7 @@ function DishDetailContent({ dishId }: { dishId: number }) {
                 <div className="text-center">
                   <p className="text-gray-600 text-sm mb-1">Price</p>
                   <p className="text-2xl font-bold text-[#D4AF37]">
-                    ${dish.price.toFixed(2)}
+                    {dish.price.toFixed(2)} VND
                   </p>
                 </div>
                 <div className="text-center border-l border-r border-gray-200">
@@ -367,7 +391,7 @@ function DishDetailContent({ dishId }: { dishId: number }) {
                   onClick={addToCart}
                   className="flex-1 py-4 bg-[#D4AF37] text-white rounded-lg hover:bg-[#B8941F] transition-colors duration-300 font-bold text-lg shadow-lg"
                 >
-                  Add to Cart - ${calculatePrice()}
+                  Add to Cart - {calculatePrice()} VND
                 </button>
                 <button className="w-14 h-14 bg-white border-2 border-[#D4AF37] rounded-lg hover:bg-gray-50 transition-colors text-2xl">
                   ♥
@@ -449,6 +473,54 @@ function DishDetailContent({ dishId }: { dishId: number }) {
             </div>
           </div>
 
+          {/* Customer Ratings & Reviews */}
+          <div className="bg-white rounded-2xl shadow-lg p-8 mb-16">
+            <h3 className={`${italiana.className} text-3xl mb-6 pb-3 border-b-2 border-[#D4AF37]`}>
+              Customer Reviews
+            </h3>
+            {ratingsLoading ? (
+              <p className="text-gray-500 text-center py-8">Loading reviews...</p>
+            ) : ratings.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">No reviews yet. Be the first to review this dish!</p>
+            ) : (
+              <div className="space-y-6">
+                {ratings.map((review, index) => (
+                  <div key={index} className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#D4AF37] rounded-full flex items-center justify-center text-white font-bold">
+                          {review.customerName?.charAt(0)?.toUpperCase() || "A"}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{review.customerName || "Anonymous"}</p>
+                          <p className="text-xs text-gray-500">
+                            {review.ratedAt ? new Date(review.ratedAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            }) : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <Icon
+                            key={i}
+                            icon={i < review.rating ? "tabler:star-filled" : "lucide:star"}
+                            className={`text-lg ${i < review.rating ? "text-[#FBBF24]" : "text-gray-300"}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {review.feedback && (
+                      <p className="text-gray-700 leading-relaxed pl-12">{review.feedback}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Related Dishes */}
           <div className="mb-16">
             <h2 className={`${italiana.className} text-3xl mb-6`}>You might also like</h2>
@@ -478,7 +550,7 @@ function DishDetailContent({ dishId }: { dishId: number }) {
                           {item.description}
                         </p>
                         <p className="text-[#D4AF37] font-bold">
-                          ${item.price.toFixed(2)}
+                          {item.price.toFixed(2)} VND
                         </p>
                       </div>
                     </div>

@@ -3,11 +3,11 @@ export {}
 declare global {
     type Dish = {
         id: number;
-        names: string;
-        images: string;
+        name: string;
+        image: string;
         categories?: string[];
         price: number;
-        descriptions?: string;
+        description?: string;
         ingredients?: string;
         rating: number
     }
