@@ -1,360 +1,131 @@
-//import axios from 'axios';
 import apiService from './api';
 
 // ==================== CATEGORY SERVICES ====================
 
-/**
- * Get all categories (for admin panel)
- * Endpoint: GET /api/categories
- */
 export const getAllCategories = async () => {
-  try {
-    const response = await apiService.get('/api/categories');
-    console.log("API Response(cate):", response);    
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  const response = await apiService.get('/api/categories');
+  console.log("API Response(cate):", response);    
+  return response;
 };
 
-/**
- * Get all active categories
- * Endpoint: GET /api/categories/active
- */
 export const getActiveCategories = async () => {
-  try {
-    const response = await apiService.get('/api/categories/active');
-    
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.get('/api/categories/active');
 };
 
-/**
- * Get category by ID
- * Endpoint: GET /api/categories/{id}
- */
 export const getCategoryById = async (id) => {
-  try {
-    const response = await apiService.get(`/api/categories/${id}`);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.get(`/api/categories/${id}`);
 };
 
-/**
- * Get category by slug
- * Endpoint: GET /api/categories/slug/{slug}
- */
 export const getCategoryBySlug = async (slug) => {
-  try {
-    const response = await apiService.get(`/api/categories/slug/${slug}`);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.get(`/api/categories/slug/${slug}`);
 };
 
-/**
- * Create new category (admin only)
- * Endpoint: POST /api/categories
- */
 export const createCategory = async (categoryData) => {
-  try {
-    const response = await apiService.post('/api/categories', categoryData);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.post('/api/categories', categoryData);
 };
 
-/**
- * Update existing category (admin only)
- * Endpoint: PUT /api/categories/{id}
- */
 export const updateCategory = async (id, categoryData) => {
-  try {
-    const response = await apiService.put(`/api/categories/${id}`, categoryData);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.put(`/api/categories/${id}`, categoryData);
 };
 
-/**
- * Delete category (admin only)
- * Endpoint: DELETE /api/categories/{id}
- */
 export const deleteCategory = async (id) => {
-  try {
-    const response = await apiService.delete(`/api/categories/${id}`);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.delete(`/api/categories/${id}`);
 };
 
 // ==================== MENU ITEM SERVICES ====================
 
-/**
- * Get all menu items with pagination and sorting
- * Endpoint: GET /api/menu
- */
 export const getAllMenuItems = async (params = {}) => {
-  try {
-    const { page = 0, size = 500, sortBy = 'name', sortDir = 'asc' } = params;
-
-    console.log("Sending params to backend:", { page, size, sortBy, sortDir });
-
-    const queryParams = new URLSearchParams({
-      page,
-      size,
-      sortBy,
-      sortDir,
-    });
-
-    const response = await apiService.get(`/api/menu?${queryParams.toString()}`);
-    console.log("API Response:", response);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  const { page = 0, size = 500, sortBy = 'name', sortDir = 'asc' } = params;
+  
+  // Axios automatically serializes 'params' into ?page=0&size=500...
+  const response = await apiService.get('/api/menu', {
+    params: { page, size, sortBy, sortDir }
+  });
+  
+  console.log("API Response:", response);
+  return response;
 };
 
-/**
- * Get all menu items for admin (including unavailable)
- * Endpoint: GET /api/menu/admin/all
- */
 export const getAllMenuItemsForAdmin = async (params = {}) => {
-  try {
-    const { page = 0, size = 500, sortBy = 'name', sortDir = 'asc' } = params;
-
-    const queryParams = new URLSearchParams({
-      page,
-      size,
-      sortBy,
-      sortDir,
-    });
-
-    const response = await apiService.get(`/api/menu/admin/all?${queryParams.toString()}`);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  const { page = 0, size = 500, sortBy = 'name', sortDir = 'asc' } = params;
+  return apiService.get('/api/menu/admin/all', {
+    params: { page, size, sortBy, sortDir }
+  });
 };
 
-/**
- * Get menu items by category for admin (including unavailable)
- * Endpoint: GET /api/menu/admin/category/{categoryId}
- */
 export const getMenuItemsByCategoryForAdmin = async (categoryId, params = {}) => {
-  try {
-    const { page = 0, size = 12 } = params;
-    const response = await apiService.get(`/api/menu/admin/category/${categoryId}`, {
-      params: { page, size },
-    });
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  const { page = 0, size = 12 } = params;
+  return apiService.get(`/api/menu/admin/category/${categoryId}`, {
+    params: { page, size }
+  });
 };
 
-/**
- * Search menu items for admin (including unavailable)
- * Endpoint: GET /api/menu/admin/search
- */
 export const searchMenuItemsForAdmin = async (keyword = "", params = {}) => {
-  try {
-    const { page = 0, size = 12 } = params;
-    const response = await apiService.get('/api/menu/admin/search', {
-      params: { keyword, page, size },
-    });
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  const { page = 0, size = 12 } = params;
+  return apiService.get('/api/menu/admin/search', {
+    params: { keyword, page, size }
+  });
 };
 
-/**
- * Get menu items by category
- * Endpoint: GET /api/menu/category/{categoryId}
- */
 export const getMenuItemsByCategory = async (categoryId, params = {}) => {
-  try {
-    const { page = 0, size = 12 } = params;
-    const response = await apiService.get(`/api/menu/category/${categoryId}`, {
-      params: { page, size },
-    });
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  const { page = 0, size = 12 } = params;
+  return apiService.get(`/api/menu/category/${categoryId}`, {
+    params: { page, size }
+  });
 };
 
-/**
- * Get menu item by ID
- * Endpoint: GET /api/menu/{id}
- */
 export const getMenuItemById = async (id) => {
-  try {
-    const response = await apiService.get(`/api/menu/${id}`);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.get(`/api/menu/${id}`);
 };
 
-/**
- * Get menu item by slug
- * Endpoint: GET /api/menu/slug/{slug}
- */
 export const getMenuItemBySlug = async (slug) => {
-  try {
-    const response = await apiService.get(`/api/menu/slug/${slug}`);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.get(`/api/menu/slug/${slug}`);
 };
 
-/**
- * Search menu items by keyword
- * Endpoint: GET /api/menu/search
- */
-export const searchMenuItems = async (keyword= "", params = {}) => {
-  try {
-    const { page = 0, size = 12 } = params;
-    const response = await apiService.get('/api/menu/search', {
-      params: { keyword, page, size },
-    });
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+export const searchMenuItems = async (keyword = "", params = {}) => {
+  const { page = 0, size = 12 } = params;
+  return apiService.get('/api/menu/search', {
+    params: { keyword, page, size }
+  });
 };
 
-/**
- * Filter menu items by price range
- * Endpoint: GET /api/menu/filter/price
- */
 export const filterMenuItemsByPrice = async (minPrice, maxPrice, params = {}) => {
-  try {
-    const { page = 0, size = 12 } = params;
-    const response = await apiService.get('/api/menu/filter/price', {
-      params: { minPrice, maxPrice, page, size },
-    });
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  const { page = 0, size = 12 } = params;
+  return apiService.get('/api/menu/filter/price', {
+    params: { minPrice, maxPrice, page, size }
+  });
 };
 
-/**
- * Get featured menu items
- * Endpoint: GET /api/menu/featured
- */
 export const getFeaturedMenuItems = async () => {
-  try {
-    const response = await apiService.get('/api/menu/featured');
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.get('/api/menu/featured');
 };
 
-/**
- * Get top rated menu items
- * Endpoint: GET /api/menu/top-rated
- */
 export const getTopRatedMenuItems = async () => {
-  try {
-    const response = await apiService.get('/api/menu/top-rated');
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.get('/api/menu/top-rated');
 };
 
-/**
- * Get popular menu items
- * Endpoint: GET /api/menu/popular
- */
 export const getPopularMenuItems = async () => {
-  try {
-    const response = await apiService.get('/api/menu/popular');
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.get('/api/menu/popular');
 };
 
-/**
- * Create new menu item (admin only)
- * Endpoint: POST /api/menu
- */
 export const createMenuItem = async (menuItemData) => {
-  try {
-    const response = await apiService.post('/api/menu', menuItemData);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.post('/api/menu', menuItemData);
 };
 
-/**
- * Update existing menu item (admin only)
- * Endpoint: PUT /api/menu/{id}
- */
 export const updateMenuItem = async (id, menuItemData) => {
-  try {
-    const response = await apiService.put(`/api/menu/${id}`, menuItemData);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.put(`/api/menu/${id}`, menuItemData);
 };
 
-/**
- * Toggle menu item availability (admin only)
- * Endpoint: PATCH /api/menu/{id}/toggle-availability
- */
 export const toggleMenuItemAvailability = async (id) => {
-  try {
-    const response = await apiService.patch(`/api/menu/${id}/toggle-availability`);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.patch(`/api/menu/${id}/toggle-availability`);
 };
 
-/**
- * Delete menu item (admin only)
- * Endpoint: DELETE /api/menu/{id}
- */
 export const deleteMenuItem = async (id) => {
-  try {
-    const response = await apiService.delete(`/api/menu/${id}`);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.delete(`/api/menu/${id}`);
 };
 
-/**
- * COMBINED FILTER - Client-side filtering since backend doesn't have combined endpoint
- * This is a workaround until backend adds a /api/menu/filter endpoint
- * 
- * @param {Object} filters - Combined filter object
- * @param {number} filters.categoryId - Category ID (null for all)
- * @param {string} filters.keyword - Search keyword
- * @param {number} filters.minPrice - Minimum price
- * @param {number} filters.maxPrice - Maximum price
- * @param {number} filters.minRating - Minimum rating (client-side filter)
- * @param {number} filters.page - Page number
- * @param {number} filters.size - Page size
- */
+// ==================== COMBINED FILTER (Client Side Logic) ====================
+// Kept logic as requested, updated internal calls to use new syntax
 export const getFilteredMenuItems = async (filters = {}) => {
   try {
     const {
@@ -364,42 +135,34 @@ export const getFilteredMenuItems = async (filters = {}) => {
       maxPrice = null,
       minRating = 0,
       page = 0,
-      size = 100, // Get more items for client-side filtering
+      size = 100, 
       sortBy = 'name',
       sortDir = 'asc',
     } = filters;
 
     let items = [];
 
-    // Priority order of filtering:
-    // 1. Category + Search (if both provided)
-    // 2. Category only
-    // 3. Search only
-    // 4. All items
-
+    // 1. Fetch data based on priority
     if (categoryId && keyword) {
-      // Get items by category first, then filter by keyword client-side
+      // Get items by category first
       const categoryResponse = await getMenuItemsByCategory(categoryId, { page: 0, size: 100 });
       items = categoryResponse.content || [];
+      // Client-side keyword filter
       items = items.filter(item =>
         item.name.toLowerCase().includes(keyword.toLowerCase())
       );
     } else if (categoryId) {
-      // Get items by category
-
       const categoryResponse = await getMenuItemsByCategory(categoryId, { page: 0, size: 500 });
       items = categoryResponse.content || [];
     } else if (keyword) {
-      // Search by keyword
-      const searchResponse = await searchMenuItems(keyword,  {page: 0}, {size: 100} );
+      const searchResponse = await searchMenuItems(keyword, { page: 0, size: 100 });
       items = searchResponse.content || [];
     } else {
-      // Get all items - fetch a large number to support pagination
       const allResponse = await getAllMenuItems({ page: 0, size: 500, sortBy, sortDir });
       items = allResponse.content || [];
     }
 
-    // Client-side filtering for price and rating
+    // 2. Client-side filtering for price and rating
     let filteredItems = items;
 
     if (minPrice !== null || maxPrice !== null) {
@@ -415,7 +178,7 @@ export const getFilteredMenuItems = async (filters = {}) => {
       filteredItems = filteredItems.filter(item => item.rating >= minRating);
     }
 
-    // Sort items
+    // 3. Sorting
     if (sortBy === 'price') {
       filteredItems.sort((a, b) =>
         sortDir === 'asc' ? a.price - b.price : b.price - a.price
@@ -432,7 +195,7 @@ export const getFilteredMenuItems = async (filters = {}) => {
       );
     }
 
-    // Manual pagination
+    // 4. Pagination
     const totalElements = filteredItems.length;
     const totalPages = Math.ceil(totalElements / size);
     const startIndex = page * size;
@@ -451,8 +214,6 @@ export const getFilteredMenuItems = async (filters = {}) => {
     };
   } catch (error) {
     console.error('Error in getFilteredMenuItems:', error);
-    // Return empty response structure instead of throwing
-    // This prevents undefined errors in the calling code
     return {
       content: [],
       totalPages: 0,
@@ -468,16 +229,10 @@ export const getFilteredMenuItems = async (filters = {}) => {
 
 // ==================== UTILITY FUNCTIONS ====================
 
-/**
- * Format price for display
- */
 export const formatPrice = (price, currency = '$') => {
   return `${currency}${parseFloat(price).toFixed(2)}`;
 };
 
-/**
- * Format preparation time
- */
 export const formatPreparationTime = (minutes) => {
   if (!minutes) return 'N/A';
   if (minutes < 60) return `${minutes} min`;
@@ -486,9 +241,6 @@ export const formatPreparationTime = (minutes) => {
   return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
 };
 
-/**
- * Get rating stars display
- */
 export const getRatingStars = (rating) => {
   if (!rating) return '☆☆☆☆☆';
   const fullStars = Math.floor(rating);
@@ -502,81 +254,34 @@ export const getRatingStars = (rating) => {
   );
 };
 
-/**
- * Like a menu item
- * Endpoint: POST /api/menu/likes/{menuItemId}
- */
+// ==================== LIKES & RATINGS ====================
+
 export const likeMenuItem = async (menuItemId) => {
-  try {
-    // POST endpoint doesn't require a body, but apiService.post expects data
-    // Sending empty object is fine
-    const response = await apiService.post(`/api/menu/likes/${menuItemId}`, {});
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.post(`/api/menu-likes/${menuItemId}`, {});
 };
 
-/**
- * Unlike a menu item
- * Endpoint: DELETE /api/menu/likes/{menuItemId}
- */
 export const unlikeMenuItem = async (menuItemId) => {
-  try {
-    const response = await apiService.delete(`/api/menu/likes/${menuItemId}`);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.delete(`/api/menu-likes/${menuItemId}`);
 };
 
-/**
- * Get like status for a menu item
- * Endpoint: GET /api/menu/likes/{menuItemId}/status
- */
 export const getMenuItemLikeStatus = async (menuItemId) => {
-  try {
-    const response = await apiService.get(`/api/menu/likes/${menuItemId}/status`);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.get(`/api/menu-likes/${menuItemId}/status`);
 };
 
-/**
- * Get dish ratings for a menu item
- * Endpoint: GET /api/menu/{id}/ratings
- */
 export const getDishRatings = async (menuItemId, limit = 5) => {
-  try {
-    const response = await apiService.get(`/api/menu/${menuItemId}/ratings?limit=${limit}`);
-    return response;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
+  return apiService.get(`/api/menu/${menuItemId}/ratings?limit=${limit}`);
 };
 
-/**
- * Handle API errors consistently
- */
+// Handle API errors consistently (Updated to work with Axios errors)
 export const handleApiError = (error) => {
-  if (error.response) {
-    // Server responded with error status
-    const message = error.response.data?.message || error.response.statusText;
-    console.error('API Error:', message);
-    return { success: false, message };
-  } else if (error.request) {
-    // Request made but no response
-    console.error('Network Error:', error.request);
-    return { success: false, message: 'Network error. Please check your connection.' };
-  } else {
-    // Something else happened
-    console.error('Error:', error.message);
-    return { success: false, message: error.message };
+  if (error.message) {
+      console.error('API Error:', error.message);
+      return { success: false, message: error.message };
   }
+  console.error('Error:', error);
+  return { success: false, message: 'An unknown error occurred' };
 };
 
-// Export default object
 const menuService = {
   // Categories
   getAllCategories,
@@ -601,22 +306,20 @@ const menuService = {
   updateMenuItem,
   toggleMenuItemAvailability,
   deleteMenuItem,
-  getFilteredMenuItems, // Combined filter
+  getFilteredMenuItems, 
 
-  // Admin Menu Items (including unavailable)
+  // Admin
   getAllMenuItemsForAdmin,
   getMenuItemsByCategoryForAdmin,
   searchMenuItemsForAdmin,
 
-  // Menu Item Likes
+  // Social
   likeMenuItem,
   unlikeMenuItem,
   getMenuItemLikeStatus,
-
-  // Dish Ratings
   getDishRatings,
 
-  // Utilities
+  // Utils
   formatPrice,
   formatPreparationTime, 
   getRatingStars,
