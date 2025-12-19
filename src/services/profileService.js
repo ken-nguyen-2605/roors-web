@@ -27,10 +27,7 @@ class ProfileService {
 
   updateProfile(userId, payload) {
     const body = sanitizeProfilePayload(payload);
-    return apiService.request(`/api/users/${userId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-    });
+    return apiService.patch(`/api/users/${userId}`, body);
   }
 
   disableAccount(userId) {
