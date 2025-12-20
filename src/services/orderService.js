@@ -125,15 +125,16 @@ class OrderService {
 
   // Update order status only
   async updateStatus(orderId, status) {
-    const response = await apiService.put(`/api/orders/${orderId}/status`, {}, {
-      params: { status }
-    });
+      // Pass the data object as the SECOND argument
+      const response = await apiService.put(`/api/orders/${orderId}/status`, { 
+          status: status 
+      });
 
-    return {
-      success: true,
-      data: response,
-      message: 'Order status updated',
-    };
+      return {
+          success: true,
+          data: response,
+          message: 'Order status updated',
+      };
   }
 
   // Cancel an order
