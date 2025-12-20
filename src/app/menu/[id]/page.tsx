@@ -393,9 +393,9 @@ function DishDetailContent({ dishId }: { dishId: number }) {
                 >
                   Add to Cart - {calculatePrice()} VND
                 </button>
-                <button className="w-14 h-14 bg-white border-2 border-[#D4AF37] rounded-lg hover:bg-gray-50 transition-colors text-2xl">
+                {/* <button className="w-14 h-14 bg-white border-2 border-[#D4AF37] rounded-lg hover:bg-gray-50 transition-colors text-2xl">
                   ♥
-                </button>
+                </button> */}
               </div>
             </div>
           </div>

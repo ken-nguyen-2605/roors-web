@@ -142,9 +142,9 @@ const RatingComponent = ({
       {initialRating && initialFeedback && (
         <div className={`mt-2 text-sm ${isLightBackground ? "text-black/60" : "text-white/60"}`}>
           <p className="italic">"{initialFeedback}"</p>
-          <p className="mt-1 text-xs">
+          {/* <p className="mt-1 text-xs">
             Rated on {new Date(initialFeedback).toLocaleDateString()}
-          </p>
+          </p> */}
         </div>
       )}
     </div>
@@ -807,14 +807,14 @@ export default function OrderHistory() {
                             <span>Subtotal</span>
                             <span>{order.subtotal.toFixed(2)} VND</span>
                           </div>
-                          <div className="flex justify-between items-center mb-2">
+                          {/* <div className="flex justify-between items-center mb-2">
                             <span>Tax (10%)</span>
                             <span>{(order.subtotal * 0.1).toFixed(2)} VND</span>
-                          </div>
+                          </div> */}
                           {order.deliveryType === "delivery" && (
                             <div className="flex justify-between items-center mb-2">
                               <span>Delivery Fee</span>
-                              <span>5.00 VND</span>
+                              <span>8,000 VND</span>
                             </div>
                           )}
                           <div
@@ -824,7 +824,7 @@ export default function OrderHistory() {
                           >
                             <span>Total</span>
                             <span>
-                              {(order.subtotal * 1.1 + (order.deliveryType === "delivery" ? 5 : 0)).toFixed(2)} VND
+                              {(order.subtotal + (order.deliveryType === "delivery" ? 8000 : 0)).toFixed(2)} VND
                             </span>
                           </div>
                         </div>

@@ -32,7 +32,7 @@ export default function UsersAndRolesSection() {
   const roles = ['All', 'Manager', 'Staff', 'Customer'];
 
   const rolePermissions = {
-    'Manager': ['Dashboard', 'Orders', 'Reservations', 'Menu', 'Staff Management', 'Reports', 'Customers'],
+    'Manager': ['Staff Management', 'Reports', 'Customers'],
     'Staff': ['Orders', 'Reservations', 'Menu', 'Customers'],
     'Customer': ['Profile', 'Orders', 'Reservations']
   };
