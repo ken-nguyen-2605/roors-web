@@ -244,8 +244,8 @@ export default function ReportsSection() {
         const result = await reservationService.getAllReservations();
         if (!result.success || !Array.isArray(result.data)) {
           // If API responds in a different envelope, try `result.data.content` or bail gracefully
-          const rawList = Array.isArray(result.data?.content)
-            ? result.data.content
+          const rawList = Array.isArray(result.data)
+            ? result.data
             : [];
 
           if (!rawList.length) {
@@ -259,8 +259,8 @@ export default function ReportsSection() {
 
         const reservationsArray: any[] = Array.isArray(result.data)
           ? result.data
-          : Array.isArray(result.data?.content)
-          ? result.data.content
+          : Array.isArray(result.data)
+          ? result.data
           : [];
 
         // Prepare buckets Sun–Sat
