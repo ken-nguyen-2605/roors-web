@@ -194,7 +194,7 @@ export default function ReservationsSection() {
       } else if (nextStatus === 'NO_SHOW') {
         // If your API has a specific endpoint for NO_SHOW, use it here
         // Otherwise, you might need to use a generic update endpoint
-        const response = await reservationService.cancelReservation(reservation.id);
+        const response = await reservationService.markReservationAsNoShow(reservation.id);
         if (!response.success) {
           throw new Error(response.message || 'Failed to mark as no show');
         }

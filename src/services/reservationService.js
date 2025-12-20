@@ -62,6 +62,16 @@ class ReservationService {
       message: 'Reservation marked as arrived',
     };
   }
+  
+  // Mark reservation as no show (Staff)
+  async markReservationAsNoShow(reservationId) {
+    const response = await apiService.patch(`/api/reservations/${reservationId}/mark-no-show`);
+    return {
+      success: true,
+      data: response,
+      message: 'Reservation marked as no show',
+    };
+  }
 
   // Cancel a reservation
   async cancelReservation(reservationId) {
