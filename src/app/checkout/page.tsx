@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { Inria_Serif } from 'next/font/google';
+import { Inria_Serif } from "next/font/google";
 const inriaSerif = Inria_Serif({
-  weight: ['300'],
-  subsets: ['latin'],
+	weight: ["300"],
+	subsets: ["latin"],
 });
 
 import { Italiana } from "next/font/google";
 const italiana = Italiana({
-  weight: ['400'],
-  subsets: ['latin'],
+	weight: ["400"],
+	subsets: ["latin"],
 });
 
 // import apiService from "@/services/api";
@@ -22,23 +22,23 @@ import orderService from "@/services/orderService";
 import { useNoteStore } from "@/stores/useNoteStore";
 
 interface PaymentData {
-    paymentId: string;
-    paymentCode: string;
-    paymentMethod: string;
-    paymentStatus: string;
-    amount: number;
-    qrCodeData?: string;
-    bankCode?: string;
-    accountNumber?: string;
-    accountName?: string;
-    transferContent?: string;
+	paymentId: string;
+	paymentCode: string;
+	paymentMethod: string;
+	paymentStatus: string;
+	amount: number;
+	qrCodeData?: string;
+	bankCode?: string;
+	accountNumber?: string;
+	accountName?: string;
+	transferContent?: string;
 }
 
 interface OrderData {
-    orderId: string;
-    orderCode: string;
-    total: number;
-    payment?: PaymentData;
+	orderId: string;
+	orderCode: string;
+	total: number;
+	payment?: PaymentData;
 }
 
 export default function Checkout() {

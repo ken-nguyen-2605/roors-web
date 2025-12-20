@@ -40,6 +40,11 @@ interface LikedDish {
   likedDate: string;
 }
 
+// 1. SAFE IMAGE GENERATOR (Fixes 400 Bad Request error)
+const getSafeAvatar = (name: string) => {
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=D4AF37&color=fff`;
+};
+
 // Sample customer data fallback
 const fallbackProfileData: CustomerProfile = {
   name: "",
@@ -48,7 +53,7 @@ const fallbackProfileData: CustomerProfile = {
   gender: "",
   address: "",
   memberSince: "",
-  profileImage: "/profile/profile_pic.jpg"
+  profileImage: getSafeAvatar("User") // Updated to use safe generator
 };
 
 // Sample liked dishes data fallback
@@ -127,8 +132,11 @@ const formatLikedDate = (value?: string) => {
 };
 
 const mapProfileResponseToCustomer = (data: any): CustomerProfile => {
+  // Use safe avatar if image is missing
+  const safeImage = data?.profileImageUrl || getSafeAvatar(data?.fullName || data?.username || "User");
+
   if (!data || typeof data !== 'object') {
-    return fallbackProfileData;
+    return { ...fallbackProfileData, profileImage: safeImage };
   }
 
   return {
@@ -137,14 +145,14 @@ const mapProfileResponseToCustomer = (data: any): CustomerProfile => {
     phone: data.phoneNumber || fallbackProfileData.phone,
     gender: data.gender || fallbackProfileData.gender,
     address: data.address || fallbackProfileData.address,
-    memberSince: formatMemberSince(data.memberSince),
-    profileImage: data.profileImageUrl || fallbackProfileData.profileImage,
+    memberSince: formatMemberSince(data.createdAt || data.memberSince),
+    profileImage: safeImage,
   };
 };
 
 const mapLikedDishesResponse = (items: any[]): LikedDish[] => {
   if (!Array.isArray(items)) {
-    return fallbackLikedDishes;
+    return []; // Return empty if invalid, don't show fake fallback on real load
   }
 
   return items.map((item, index) => ({
@@ -152,104 +160,92 @@ const mapLikedDishesResponse = (items: any[]): LikedDish[] => {
     name: item?.name ?? `Favorite Dish ${index + 1}`,
     description: item?.description ?? 'Customer favorite item',
     price: Number(item?.price ?? 0),
-    image: item?.imageUrl ?? item?.image ?? fallbackLikedDishes[index % fallbackLikedDishes.length].image,
+    image: item?.imageUrl ?? item?.image ?? "/menu/placeholder.jpg",
     category: item?.category?.name ?? item?.category ?? 'Chef Special',
-    // Note: Backend doesn't return likedDate in MenuItemResponse, so we use createdAt or show "Recently"
     likedDate: formatLikedDate(item?.createdAt ?? item?.likedDate ?? item?.likedAt),
   }));
 };
 
-const getStoredUserId = (): number | null => {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem('userInfo');
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed?.id ?? parsed?.userId ?? null;
-  } catch {
-    return null;
-  }
-};
-
 export default function ProfilePage() {
   const router = useRouter();
+  
+  // 2. LOGIC FIX: Get loading state from AuthContext
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+
   const [activeTab, setActiveTab] = useState<'profile' | 'liked'>('profile');
   const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState<CustomerProfile>(fallbackProfileData);
-  const [persistedProfile, setPersistedProfile] = useState<CustomerProfile>(fallbackProfileData);
-  const [likedDishesList, setLikedDishesList] = useState<LikedDish[]>(fallbackLikedDishes);
+  
+  // Initialize with safe default
+  const [profileData, setProfileData] = useState<CustomerProfile>({
+    ...fallbackProfileData,
+    profileImage: getSafeAvatar("User")
+  });
+
+  const [persistedProfile, setPersistedProfile] = useState<CustomerProfile>(profileData);
+  const [likedDishesList, setLikedDishesList] = useState<LikedDish[]>([]); // Start empty
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingLiked, setLoadingLiked] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [userId, setUserId] = useState<number | null>(null);
-  const { user, isAuthenticated } = useAuth();
 
-  const resolvedId = user?.id ?? getStoredUserId();
-
+  // 3. LOGIC FIX: Updated useEffect with dependencies to fix Race Condition
   useEffect(() => {
+    // Wait for Auth to initialize
+    if (authLoading) return;
+
+    // Check Auth
+    if (!isAuthenticated) {
+      router.push('/auth/login?redirect=/profile');
+      return;
+    }
+
+    // Extract ID robustly
+    const userId = Number(user?.id || user?.sub || user?.userId);
+
+    if (!userId) {
+      console.error("User logged in but no ID found");
+      return;
+    }
+
     let isMounted = true;
-    console.log('Resolved User ID:', resolvedId);
-    setUserId(resolvedId);
 
     const fetchProfile = async (id: number) => {
       setLoadingProfile(true);
       try {
         const response = await profileService.getProfileById(id);
-        console.log('Profile response:', response);
         if (!isMounted) return;
         const mappedProfile = mapProfileResponseToCustomer(unwrapResponse(response));
         setProfileData(mappedProfile);
-        console.log('Mapped Profile Data:', mappedProfile);
         setPersistedProfile(mappedProfile);
       } catch (error) {
         console.error('Failed to load profile data:', error);
-        if (isMounted) {
-          setProfileData(fallbackProfileData);
-          setPersistedProfile(fallbackProfileData);
-        }
       } finally {
-        if (isMounted) {
-          setLoadingProfile(false);
-        }
+        if (isMounted) setLoadingProfile(false);
       }
     };
 
     const fetchLikedDishes = async (id: number) => {
       setLoadingLiked(true);
       try {
-        // Backend returns List<MenuItemResponse> directly, not wrapped in content
         const response = await profileService.getLikedDishes(id);
         if (!isMounted) return;
         const payload = unwrapResponse(response);
-        // Backend returns array directly or wrapped in data
         const items = Array.isArray(payload) ? payload : Array.isArray(payload?.content) ? payload.content : [];
         const normalized = mapLikedDishesResponse(items);
         setLikedDishesList(normalized);
       } catch (error) {
         console.error('Failed to load liked dishes:', error);
-        if (isMounted) {
-          setLikedDishesList(fallbackLikedDishes);
-        }
       } finally {
-        if (isMounted) {
-          setLoadingLiked(false);
-        }
+        if (isMounted) setLoadingLiked(false);
       }
     };
 
-    if (resolvedId) {
-      fetchProfile(resolvedId);
-      fetchLikedDishes(resolvedId);
-    } else {
-      setProfileData(fallbackProfileData);
-      setPersistedProfile(fallbackProfileData);
-      setLikedDishesList(fallbackLikedDishes);
-    }
+    fetchProfile(userId);
+    fetchLikedDishes(userId);
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user, isAuthenticated, authLoading, router]); // Added dependencies
 
   const handleInputChange = (field: keyof CustomerProfile, value: string) => {
     setProfileData(prev => ({
@@ -259,6 +255,7 @@ export default function ProfilePage() {
   };
 
   const handleSave = async () => {
+    const userId = Number(user?.id || user?.sub || user?.userId);
     if (!userId) {
       setPersistedProfile(profileData);
       setIsEditing(false);
@@ -286,6 +283,7 @@ export default function ProfilePage() {
   };
 
   const handleRemoveLike = async (dishId: number) => {
+    const userId = Number(user?.id || user?.sub || user?.userId);
     try {
       if (userId) {
         await profileService.removeLikedDish(dishId, userId);
@@ -303,6 +301,7 @@ export default function ProfilePage() {
   };
 
   const handleDisableAccount = async () => {
+    const userId = Number(user?.id || user?.sub || user?.userId);
     if (!userId) {
       alert('Unable to find your account information.');
       return;
@@ -316,20 +315,28 @@ export default function ProfilePage() {
     try {
       await profileService.disableAccount(userId);
       alert('Your account has been disabled. You will be logged out.');
-
-      // Clear local auth/session data
       if (typeof window !== 'undefined') {
         localStorage.removeItem('authToken');
-        localStorage.removeItem('token');
         localStorage.removeItem('userInfo');
       }
-
-      router.push('/auth/login');
+      window.location.href = '/auth/login';
     } catch (error: any) {
       console.error('Failed to disable account:', error);
       alert(error?.message || 'Failed to disable account. Please try again later.');
     }
   };
+
+  // 4. Loading State to prevent Flash
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="w-12 h-12 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Prevent render if not authenticated
+  if (!isAuthenticated) return null;
 
   return (
     <section className="relative w-full min-h-screen overflow-hidden">
@@ -362,13 +369,15 @@ export default function ProfilePage() {
               
               {/* Profile Image */}
               <div className="relative">
-                <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-lg">
+                <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[#D4AF37] shadow-lg bg-gray-200">
+                  {/* 5. FIX: Added unoptimized prop to handle external avatars safely */}
                   <Image
                     src={profileData.profileImage}
                     alt={profileData.name}
                     width={160}
                     height={160}
-                    className="object-cover"
+                    className="object-cover w-full h-full"
+                    unoptimized={profileData.profileImage.includes("ui-avatars")}
                   />
                 </div>
                 <button className="absolute bottom-2 right-2 w-10 h-10 bg-[#D4AF37] rounded-full flex items-center justify-center text-white hover:bg-[#B8941F] transition-colors shadow-lg">
@@ -410,13 +419,13 @@ export default function ProfilePage() {
                     >
                       {savingProfile ? 'Saving...' : 'Save'}
                     </button>
-                  <button
-                    onClick={() => {
-                      setIsEditing(false);
-                      setProfileData(persistedProfile);
-                    }}
-                    className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-300 font-semibold shadow-lg"
-                  >
+                    <button
+                      onClick={() => {
+                        setIsEditing(false);
+                        setProfileData(persistedProfile);
+                      }}
+                      className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-300 font-semibold shadow-lg"
+                    >
                       Cancel
                     </button>
                   </div>

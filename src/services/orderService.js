@@ -20,38 +20,22 @@ import apiService from './api';
 class OrderService {
   // Create a new order
   async createOrder(orderData) {
-    try {
-      const response = await apiService.post('/api/orders', orderData);
-      return {
-        success: true,
-        data: response,
-        message: 'Order created successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to create order',
-        status: error.status,
-      };
-    }
+    const response = await apiService.post('/api/orders', orderData);
+    return {
+      success: true,
+      data: response,
+      message: 'Order created successfully',
+    };
   }
 
   // Fetch a single order by ID
   async getOrder(orderId) {
-    try {
-      const response = await apiService.get(`/api/orders/${orderId}`);
-      return {
-        success: true,
-        data: response,
-        message: 'Order fetched successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to fetch order',
-        status: error.status,
-      };
-    }
+    const response = await apiService.get(`/api/orders/${orderId}`);
+    return {
+      success: true,
+      data: response,
+      message: 'Order fetched successfully',
+    };
   }
 
   // List orders with optional filters & pagination
@@ -64,478 +48,235 @@ class OrderService {
     sortBy = 'createdAt', 
     sortDirection = 'DESC' 
   } = {}) {
-    try {
-      const params = new URLSearchParams();
-      params.set('page', page.toString());
-      params.set('size', size.toString());
-      params.set('sortBy', sortBy);
-      params.set('sortDirection', sortDirection);
-      
-      if (status) params.set('status', status);
-      if (orderType) params.set('orderType', orderType);
-      if (search) params.set('search', search);
+    
+    // Axios handles query params automatically via the 'params' object
+    const response = await apiService.get('/api/orders', {
+      params: { page, size, status, orderType, search, sortBy, sortDirection }
+    });
 
-      const qs = params.toString();
-      const response = await apiService.get(`/api/orders?${qs}`);
-      return {
-        success: true,
-        data: response,
-        message: 'Orders loaded',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to load orders',
-        status: error.status,
-      };
-    }
+    return {
+      success: true,
+      data: response,
+      message: 'Orders loaded',
+    };
   }
-  /**
-   * Get orders by specific status (NEW ENDPOINT)
-   * @param {string} status - Order status (PENDING, CONFIRMED, PREPARING, READY, DELIVERING, COMPLETED, CANCELLED)
-   * @param {Object} options - Query parameters
-   */
+
+  // Get orders by specific status
   async getOrdersByStatus(status, { page = 0, size = 100, orderType } = {}) {
-    try {
-      const params = new URLSearchParams();
-      params.set('page', page);
-      params.set('size', size);
-      if (orderType) params.set('orderType', orderType);
-
-      const qs = params.toString();
-      const response = await apiService.get(`/api/orders/status/${status}?${qs}`);
-      
-      return {
-        success: true,
-        data: response.content || response,
-        totalElements: response.totalElements,
-        totalPages: response.totalPages,
-        message: `Orders with status ${status} loaded`,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || `Failed to load orders with status ${status}`,
-        status: error.status,
-      };
-    }
-  }
-    async reOrder(orderId) {
-    try {
-      // POST to /api/orders/{id}/reorder
-      const response = await apiService.post(`/api/orders/${orderId}/reorder`);
-
-      return {
-        success: true,
-        data: response,
-        message: 'Order reordered successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to reorder order',
-        status: error.status,
-      };
-    }
+    const response = await apiService.get(`/api/orders/status/${status}`, {
+      params: { page, size, orderType }
+    });
+    
+    return {
+      success: true,
+      data: response.content || response,
+      totalElements: response.totalElements,
+      totalPages: response.totalPages,
+      message: `Orders with status ${status} loaded`,
+    };
   }
 
+  // Re-order an existing order
+  async reOrder(orderId) {
+    const response = await apiService.post(`/api/orders/${orderId}/reorder`);
+    return {
+      success: true,
+      data: response,
+      message: 'Order reordered successfully',
+    };
+  }
 
-
-  /**
-   * Get orders for a specific date (NEW ENDPOINT)
-   * @param {string} date - Date in YYYY-MM-DD format
-   * @param {Object} options - Query parameters
-   */
+  // Get orders for a specific date
   async getOrdersByDate(date, { page = 0, size = 10, status } = {}) {
-    try {
-      const params = new URLSearchParams();
-      params.set('page', page);
-      params.set('size', size);
-      if (status) params.set('status', status);
+    const response = await apiService.get(`/api/orders/date/${date}`, {
+      params: { page, size, status }
+    });
+    
+    console.log('Orders by Date Response:', response);
 
-      const qs = params.toString();
-      const response = await apiService.get(`/api/orders/date/${date}?${qs}`);
-      
-      console.log('Orders by Date Response:', response);
-
-      return {
-        success: true,
-        data: response.content || response,
-        totalElements: response.totalElements,
-        totalPages: response.totalPages,
-        message: 'Orders loaded for date',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to load orders for date',
-        status: error.status,
-      };
-    }
+    return {
+      success: true,
+      data: response.content || response,
+      totalElements: response.totalElements,
+      totalPages: response.totalPages,
+      message: 'Orders loaded for date',
+    };
   }
-
-
-/**
- * 
- * // ✅ NEW: Check payment status by payment ID
-    checkPaymentStatus: async (paymentId: string) => {
-        try {
-            const response = await apiService.get(`/api/payments/${paymentId}`);
-            return {
-                success: true,
-                data: response
-            };
-        } catch (error: any) {
-            console.error('Check payment status error:', error);
-            return {
-                success: false,
-                message: error.message || 'Failed to check payment status'
-            };
-        }
-    },
-
- */
 
   // Check payment status
   async checkPaymentStatus(paymentCode) {
-    try {
-      const response = await apiService.get(`/api/payments/${paymentCode}`);
-      return {
-        success: true,
-        data: response,
-        message: 'Payment status retrieved',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to retrieve payment status',
-        status: error.status,
-      };
-    }
+    const response = await apiService.get(`/api/payments/${paymentCode}`);
+    return {
+      success: true,
+      data: response,
+      message: 'Payment status retrieved',
+    };
   }
 
   // Update order (full or partial payload)
   async updateOrder(orderId, payload) {
-    try {
-      const response = await apiService.put(`/api/orders/${orderId}`, payload);
-      return {
-        success: true,
-        data: response,
-        message: 'Order updated successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to update order',
-        status: error.status,
-      };
-    }
+    const response = await apiService.put(`/api/orders/${orderId}`, payload);
+    return {
+      success: true,
+      data: response,
+      message: 'Order updated successfully',
+    };
   }
 
   // Update order status only
   async updateStatus(orderId, status) {
-    try {
-      const response = await apiService.put(`/api/orders/${orderId}/status?status=${status}`, {});
+    const response = await apiService.put(`/api/orders/${orderId}/status`, {}, {
+      params: { status }
+    });
 
-      return {
-        success: true,
-        data: response,
-        message: 'Order status updated',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to update order status',
-        status: error.status,
-      };
-    }
+    return {
+      success: true,
+      data: response,
+      message: 'Order status updated',
+    };
   }
 
-  // Cancel an order with optional reason
-  async cancelOrder(orderId, reason) {
-    try {
-      const cancellationReason = reason || "";
-
-      const response = await apiService.post(`/api/orders/${orderId}/cancel`, { reason: cancellationReason });
-      return {
-        success: true,
-        data: response,
-        message: 'Order canceled',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to cancel order',
-        status: error.status,
-      };
-    }
+  // Cancel an order
+  async cancelOrder(orderId, reason = "") {
+    const response = await apiService.post(`/api/orders/${orderId}/cancel`, { reason });
+    return {
+      success: true,
+      data: response,
+      message: 'Order canceled',
+    };
   }
 
-  // Permanently delete an order (admin-only in most systems)
+  // Delete an order
   async deleteOrder(orderId) {
-    try {
-      const response = await apiService.delete(`/api/orders/${orderId}`);
-      return {
-        success: true,
-        data: response,
-        message: 'Order deleted',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to delete order',
-        status: error.status,
-      };
-    }
+    const response = await apiService.delete(`/api/orders/${orderId}`);
+    return {
+      success: true,
+      data: response,
+      message: 'Order deleted',
+    };
   }
 
-  // Add an item to an order
+  // Add item to order
   async addItem(orderId, item) {
-    try {
-      const response = await apiService.post(`/api/orders/${orderId}/items`, item);
-      return {
-        success: true,
-        data: response,
-        message: 'Item added to order',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to add item',
-        status: error.status,
-      };
-    }
+    const response = await apiService.post(`/api/orders/${orderId}/items`, item);
+    return {
+      success: true,
+      data: response,
+      message: 'Item added to order',
+    };
   }
 
-  // Remove an item from an order
+  // Remove item from order
   async removeItem(orderId, itemId) {
-    try {
-      const response = await apiService.delete(`/api/orders/${orderId}/items/${itemId}`);
-      return {
-        success: true,
-        data: response,
-        message: 'Item removed from order',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to remove item',
-        status: error.status,
-      };
-    }
+    const response = await apiService.delete(`/api/orders/${orderId}/items/${itemId}`);
+    return {
+      success: true,
+      data: response,
+      message: 'Item removed from order',
+    };
   }
 
-  // Update an existing item on an order
+  // Update existing item
   async updateItem(orderId, itemId, partialItem) {
-    try {
-      const response = await apiService.put(`/api/orders/${orderId}/items/${itemId}`, partialItem);
-      return {
-        success: true,
-        data: response,
-        message: 'Item updated',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to update item',
-        status: error.status,
-      };
-    }
+    const response = await apiService.put(`/api/orders/${orderId}/items/${itemId}`, partialItem);
+    return {
+      success: true,
+      data: response,
+      message: 'Item updated',
+    };
   }
 
-  // Submit payment for an order
+  // Submit payment
   async payOrder(orderId, paymentInfo) {
-    try {
-      const response = await apiService.post(`/api/orders/${orderId}/pay`, paymentInfo);
-      return {
-        success: true,
-        data: response,
-        message: 'Payment processed',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Payment failed',
-        status: error.status,
-      };
-    }
+    const response = await apiService.post(`/api/orders/${orderId}/pay`, paymentInfo);
+    return {
+      success: true,
+      data: response,
+      message: 'Payment processed',
+    };
   }
 
-  // Issue a refund for an order
+  // Issue refund
   async refundOrder(orderId, payload) {
-    try {
-      const response = await apiService.post(`/api/orders/${orderId}/refund`, payload);
-      return {
-        success: true,
-        data: response,
-        message: 'Refund processed',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Refund failed',
-        status: error.status,
-      };
-    }
+    const response = await apiService.post(`/api/orders/${orderId}/refund`, payload);
+    return {
+      success: true,
+      data: response,
+      message: 'Refund processed',
+    };
   }
 
-  // Convenience: get orders for the current authenticated user
+  // Get current user's orders
   async getMyOrders(params = {}) {
-    try {
-      const q = new URLSearchParams(params).toString();
-      const response = await apiService.get(`/api/orders/me${q ? `?${q}` : ''}`);
-      console.log('My Orders Response:', response.content);
-      return {
-        success: true,
-        data: response.content,
-        message: 'Your orders loaded',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to load your orders',
-        status: error.status,
-      };
-    }
+    const response = await apiService.get('/api/orders/me', { params });
+    console.log('My Orders Response:', response.content);
+    return {
+      success: true,
+      data: response.content || response,
+      message: 'Your orders loaded',
+    };
   }
 
-  /**
-   * Get orders with ratings
-   */
+  // Get orders with ratings
   async getOrdersWithRatings({ page = 0, size = 100, rating, sortBy = 'ratedAt', sortDirection = 'DESC' } = {}) {
-    try {
-      const params = new URLSearchParams();
-      params.set('page', page.toString());
-      params.set('size', size.toString());
-      params.set('sortBy', sortBy);
-      params.set('sortDirection', sortDirection);
-      
-      if (rating) params.set('rating', rating.toString());
-
-      const qs = params.toString();
-      const response = await apiService.get(`/api/orders/with-ratings?${qs}`);
-      
-      return {
-        success: true,
-        data: response.content || response,
-        totalElements: response.totalElements,
-        totalPages: response.totalPages,
-        message: 'Orders with ratings loaded',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to load orders with ratings',
-        status: error.status,
-      };
-    }
+    const response = await apiService.get('/api/orders/with-ratings', {
+      params: { page, size, rating, sortBy, sortDirection }
+    });
+    
+    return {
+      success: true,
+      data: response.content || response,
+      totalElements: response.totalElements,
+      totalPages: response.totalPages,
+      message: 'Orders with ratings loaded',
+    };
   }
 
-  /**
-   * Submit order rating
-   */
+  // Submit order rating
   async submitOrderRating(orderId, rating, feedback) {
-    try {
-      const response = await apiService.post(`/api/orders/${orderId}/rating`, {
-        rating,
-        feedback
-      });
-      return {
-        success: true,
-        data: response,
-        message: 'Rating submitted successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to submit rating',
-        status: error.status,
-      };
-    }
+    const response = await apiService.post(`/api/orders/${orderId}/rating`, { rating, feedback });
+    return {
+      success: true,
+      data: response,
+      message: 'Rating submitted successfully',
+    };
   }
 
-  /**
-   * Submit dish rating
-   */
+  // Submit dish rating
   async submitDishRating(orderId, itemId, dishRating, dishFeedback) {
-    try {
-      const response = await apiService.post(`/api/orders/${orderId}/items/${itemId}/rating`, {
-        dishRating,
-        dishFeedback
-      });
-      return {
-        success: true,
-        data: response,
-        message: 'Dish rating submitted successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to submit dish rating',
-        status: error.status,
-      };
-    }
+    const response = await apiService.post(`/api/orders/${orderId}/items/${itemId}/rating`, {
+      dishRating,
+      dishFeedback
+    });
+    return {
+      success: true,
+      data: response,
+      message: 'Dish rating submitted successfully',
+    };
   }
 
-  /**
-   * Admin respond to order feedback
-   */
-  async respondToOrderFeedback(orderId, response) {
-    try {
-      const result = await apiService.post(`/api/orders/${orderId}/rating/response`, {
-        response
-      });
-      return {
-        success: true,
-        data: result,
-        message: 'Response submitted successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to submit response',
-        status: error.status,
-      };
-    }
+  // Respond to order feedback (Admin)
+  async respondToOrderFeedback(orderId, responseText) {
+    const result = await apiService.post(`/api/orders/${orderId}/rating/response`, {
+      response: responseText
+    });
+    return {
+      success: true,
+      data: result,
+      message: 'Response submitted successfully',
+    };
   }
 
-  /**
-   * Admin respond to dish feedback
-   */
-  async respondToDishFeedback(orderId, itemId, response) {
-    try {
-      const result = await apiService.post(`/api/orders/${orderId}/items/${itemId}/rating/response`, {
-        response
-      });
-      return {
-        success: true,
-        data: result,
-        message: 'Response submitted successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to submit response',
-        status: error.status,
-      };
-    }
-  }
-
-  async reorder(orderId) {
-    try {
-      const response = await apiService.post(`/api/orders/${orderId}/reorder`);
-      return {
-        success: true,
-        data: response,
-        message: 'Re-order placed successfully',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Failed to place re-order',
-        status: error.status,
-      };
-    }
+  // Respond to dish feedback (Admin)
+  async respondToDishFeedback(orderId, itemId, responseText) {
+    const result = await apiService.post(`/api/orders/${orderId}/items/${itemId}/rating/response`, {
+      response: responseText
+    });
+    return {
+      success: true,
+      data: result,
+      message: 'Response submitted successfully',
+    };
   }
 }
 
