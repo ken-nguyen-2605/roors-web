@@ -44,7 +44,7 @@ export default function OrdersSection() {
   const [searchOrderId, setSearchOrderId] = useState<string>('');
   const [isSearchMode, setIsSearchMode] = useState(false);
 
-  const statuses = ['All', 'PENDING', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED', 'COMPLETED'];
+  const statuses = ['All', 'PENDING', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED'];
 
   const normalizeOrders = (data: any): Order[] => {
     if (Array.isArray(data)) return data;
