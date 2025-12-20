@@ -24,7 +24,7 @@ interface Order {
   taxAmount: number;
   deliveryFee: number;
   totalAmount: number;
-  status: 'PENDING' | 'PREPARING' | 'READY' | 'DELIVERED' | 'CANCELLED';
+  status: 'PENDING' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
   specialInstructions?: string;
   createdAt: string;
   updatedAt: string;
@@ -44,7 +44,7 @@ export default function OrdersSection() {
   const [searchOrderId, setSearchOrderId] = useState<string>('');
   const [isSearchMode, setIsSearchMode] = useState(false);
 
-  const statuses = ['All', 'PENDING', 'PREPARING', 'READY', 'DELIVERED', 'CANCELLED'];
+  const statuses = ['All', 'PENDING', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED', 'COMPLETED'];
 
   const normalizeOrders = (data: any): Order[] => {
     if (Array.isArray(data)) return data;
@@ -201,7 +201,7 @@ export default function OrdersSection() {
       case 'PENDING': return 'bg-yellow-100 text-yellow-700';
       case 'PREPARING': return 'bg-blue-100 text-blue-700';
       case 'READY': return 'bg-green-100 text-green-700';
-      case 'DELIVERED': return 'bg-gray-100 text-gray-700';
+      case 'COMPLETED': return 'bg-gray-100 text-gray-700';
       case 'CANCELLED': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';
     }
@@ -428,7 +428,7 @@ export default function OrdersSection() {
                               <CheckCircle className="w-4 h-4" />
                             </button>
                           )}
-                          {order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && (
+                          {order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && (
                             <button
                               onClick={() => handleCancelOrder(order.id)}
                               className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
@@ -490,7 +490,7 @@ function OrderDetailModal({
       case 'PENDING': return 'bg-yellow-100 text-yellow-700';
       case 'PREPARING': return 'bg-blue-100 text-blue-700';
       case 'READY': return 'bg-green-100 text-green-700';
-      case 'DELIVERED': return 'bg-gray-100 text-gray-700';
+      case 'COMPLETED': return 'bg-gray-100 text-gray-700';
       case 'CANCELLED': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';
     }
@@ -681,16 +681,16 @@ function OrderDetailModal({
             {order.status === 'READY' && (
               <button
                 onClick={() => {
-                  onStatusChange(order.id, 'DELIVERED');
+                  onStatusChange(order.id, 'COMPLETED');
                   onClose();
                 }}
                 className="flex-1 min-w-[200px] px-6 py-3 bg-gray-700 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
               >
                 <CheckCircle className="w-5 h-5" />
-                Mark as Delivered
+                Mark as COMPLETED
               </button>
             )}
-            {order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && (
+            {order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && (
               <button
                 onClick={() => {
                   onCancelOrder(order.id);

@@ -238,9 +238,9 @@ export default function ReservationsSection() {
           )}
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium shadow-lg hover:shadow-xl transition-all hover:scale-105">
+          {/* <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-medium shadow-lg hover:shadow-xl transition-all hover:scale-105">
             New Reservation
-          </button>
+          </button> */}
           <button
             onClick={refreshReservations}
             disabled={loading}
@@ -531,13 +531,13 @@ function CancelReservationModal({
           </div>
 
           <div className="space-y-3">
-            <button
+            {/* <button
               onClick={() => onConfirm(reservation, 'CANCELLED')}
               disabled={loading}
               className="w-full px-6 py-3 rounded-lg bg-orange-500 text-white font-medium hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Processing...' : 'Cancelled by Customer'}
-            </button>
+            </button> */}
             <button
               onClick={() => onConfirm(reservation, 'NO_SHOW')}
               disabled={loading}
